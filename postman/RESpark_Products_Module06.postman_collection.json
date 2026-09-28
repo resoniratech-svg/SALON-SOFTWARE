@@ -1,0 +1,724 @@
+{
+  "info": {
+    "_postman_id": "respark-module-06-products-suite",
+    "name": "RESpark - Module 06: Products Suite",
+    "description": "Complete test and integration suite for RESpark Module 06: Products. Includes automated token extraction, category dependency setup, barcode generator, CRUD operations, filter & search validations, RBAC checks, integrity checks, and cleanup.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01. Auth - Admin Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Admin token acquired\", function () {",
+              "    pm.expect(jsonData.data.token).to.be.a('string');",
+              "    pm.environment.set(\"adminToken\", jsonData.data.token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"username\": \"{{adminUsername}}\",\n    \"password\": \"{{adminPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "02. Auth - Receptionist Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Receptionist token acquired\", function () {",
+              "    pm.expect(jsonData.data.token).to.be.a('string');",
+              "    pm.environment.set(\"receptionistToken\", jsonData.data.token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"username\": \"{{receptionistUsername}}\",\n    \"password\": \"{{receptionistPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "03. Setup - Create Test Product Category",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Category created (201)\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Category ID extracted\", function () {",
+              "    pm.expect(jsonData.data.id).to.be.a('string');",
+              "    pm.environment.set(\"categoryId\", jsonData.data.id);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Postman Category \" + Date.now(),\n    \"position\": 1,\n    \"group\": \"Both\",\n    \"isActive\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/product-categories",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-categories"]
+        }
+      }
+    },
+    {
+      "name": "04. Products - Auto-generate Barcode",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Valid numeric barcode returned\", function () {",
+              "    pm.expect(jsonData.data.barcode).to.be.a('string');",
+              "    pm.expect(jsonData.data.barcode.length).to.be.at.least(10);",
+              "    pm.environment.set(\"generatedBarcode\", jsonData.data.barcode);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/products/generate-barcode",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "products", "generate-barcode"]
+        }
+      }
+    },
+    {
+      "name": "05. Products - Create Minimal Product",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201 Created\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Defaults applied\", function () {",
+              "    pm.expect(jsonData.data.isRetail).to.eql(true);",
+              "    pm.expect(jsonData.data.group).to.eql('Both');",
+              "    pm.expect(jsonData.data.isActive).to.eql(true);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Minimal Shampoo \" + Date.now(),\n    \"categoryId\": \"{{categoryId}}\",\n    \"price\": 19.99\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/products",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "products"]
+        }
+      }
+    },
+    {
+      "name": "06. Products - Create Comprehensive Product (Full Spec)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201 Created\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"All 22 UI fields preserved\", function () {",
+              "    pm.expect(jsonData.data.id).to.be.a('string');",
+              "    pm.expect(jsonData.data.hsnCode).to.eql(\"3304\");",
+              "    pm.expect(jsonData.data.variations).to.be.an('array').with.lengthOf(2);",
+              "    pm.expect(jsonData.data.taxes).to.be.an('array').with.lengthOf(2);",
+              "    pm.expect(jsonData.data.displayImages).to.be.an('array').with.lengthOf(2);",
+              "    pm.environment.set(\"productId\", jsonData.data.id);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Fair and Lovely Daily Glow Cream\",\n    \"categoryId\": \"{{categoryId}}\",\n    \"position\": 1,\n    \"hsnCode\": \"3304\",\n    \"productTag\": \"Skincare\",\n    \"storeSku\": \"SKU-PM-\" + Date.now(),\n    \"isRetail\": true,\n    \"group\": \"Female\",\n    \"hideFromCatalogue\": false,\n    \"price\": 150.00,\n    \"salePrice\": 135.00,\n    \"isNonDiscountable\": false,\n    \"description\": \"Nourishing radiance face cream with multi-vitamins\",\n    \"barcode\": \"{{generatedBarcode}}\",\n    \"variations\": [\n        {\n            \"name\": \"50ml\",\n            \"price\": 150,\n            \"salePrice\": 135,\n            \"sku\": \"SKU-FL-50\"\n        },\n        {\n            \"name\": \"100ml\",\n            \"price\": 280,\n            \"salePrice\": 250,\n            \"sku\": \"SKU-FL-100\"\n        }\n    ],\n    \"taxes\": [\n        {\n            \"name\": \"CGST\",\n            \"rate\": 9,\n            \"type\": \"percentage\"\n        },\n        {\n            \"name\": \"SGST\",\n            \"rate\": 9,\n            \"type\": \"percentage\"\n        }\n    ],\n    \"videoLink\": \"https://example.com/demo.mp4\",\n    \"benefits\": \"Deep hydration and brightening\",\n    \"ingredients\": \"Water, Niacinamide, Vitamin E\",\n    \"usageInstructions\": \"Massage gently over clean face morning and evening\",\n    \"displayImages\": [\n        \"https://example.com/images/cream-front.jpg\",\n        {\n            \"url\": \"https://example.com/images/cream-back.jpg\",\n            \"position\": 1,\n            \"isPrimary\": true\n        }\n    ],\n    \"isActive\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/products",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "products"]
+        }
+      }
+    },
+    {
+      "name": "07. Products - List Products (Default)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Pagination object and items exist\", function () {",
+              "    pm.expect(jsonData.data.items).to.be.an('array');",
+              "    pm.expect(jsonData.data.pagination).to.have.property('total');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/products",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "products"]
+        }
+      }
+    },
+    {
+      "name": "08. Products - Search by Name or SKU",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Search results contain matched items\", function () {",
+              "    pm.expect(jsonData.data.items.length).to.be.at.least(1);",
+              "    pm.expect(jsonData.data.items[0].name).to.include('Fair and Lovely');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/products?search=Fair",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "products"],
+          "query": [
+            { "key": "search", "value": "Fair" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "09. Products - Filter by Category and Group",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Items belong to target category and group\", function () {",
+              "    jsonData.data.items.forEach(function(item) {",
+              "        pm.expect(item.categoryId).to.eql(pm.environment.get(\"categoryId\"));",
+              "        pm.expect(item.group).to.eql('Female');",
+              "    });",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/products?categoryId={{categoryId}}&group=Female",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "products"],
+          "query": [
+            { "key": "categoryId", "value": "{{categoryId}}" },
+            { "key": "group", "value": "Female" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "10. Products - Pagination and Sorting",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Limit respected\", function () {",
+              "    pm.expect(jsonData.data.items.length).to.be.at.most(2);",
+              "    pm.expect(jsonData.data.pagination.page).to.eql(1);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/products?limit=2&page=1&sortBy=price&sortOrder=desc",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "products"],
+          "query": [
+            { "key": "limit", "value": "2" },
+            { "key": "page", "value": "1" },
+            { "key": "sortBy", "value": "price" },
+            { "key": "sortOrder", "value": "desc" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "11. Products - Get Product by ID",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Product details and category join present\", function () {",
+              "    pm.expect(jsonData.data.id).to.eql(pm.environment.get(\"productId\"));",
+              "    pm.expect(jsonData.data.category).to.be.an('object');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/products/{{productId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "products", "{{productId}}"]
+        }
+      }
+    },
+    {
+      "name": "12. Products - Update Product Details",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Fields updated\", function () {",
+              "    pm.expect(Number(jsonData.data.price)).to.eql(160);",
+              "    pm.expect(Number(jsonData.data.salePrice)).to.eql(145);",
+              "    pm.expect(jsonData.data.position).to.eql(5);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"price\": 160.00,\n    \"salePrice\": 145.00,\n    \"position\": 5,\n    \"description\": \"Updated description with clinical glow testing\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/products/{{productId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "products", "{{productId}}"]
+        }
+      }
+    },
+    {
+      "name": "13. Products - Toggle Status (Deactivate)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Product deactivated\", function () {",
+              "    pm.expect(jsonData.data.isActive).to.eql(false);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"isActive\": false\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/products/{{productId}}/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "products", "{{productId}}", "status"]
+        }
+      }
+    },
+    {
+      "name": "14. Products - Toggle Status (Activate)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Product reactivated\", function () {",
+              "    pm.expect(jsonData.data.isActive).to.eql(true);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"isActive\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/products/{{productId}}/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "products", "{{productId}}", "status"]
+        }
+      }
+    },
+    {
+      "name": "15. RBAC - Receptionist Can Read Products",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{receptionistToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/products",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "products"]
+        }
+      }
+    },
+    {
+      "name": "16. RBAC - Receptionist Cannot Create (Forbidden)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 403 Forbidden\", function () {",
+              "    pm.response.to.have.status(403);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{receptionistToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"RBAC Denied Item\",\n    \"categoryId\": \"{{categoryId}}\",\n    \"price\": 50\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/products",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "products"]
+        }
+      }
+    },
+    {
+      "name": "17. Validation - Missing Required Category",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 400 Bad Request\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"No Category Item\",\n    \"price\": 50\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/products",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "products"]
+        }
+      }
+    },
+    {
+      "name": "18. Validation - Duplicate Name Conflict",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 409 Conflict\", function () {",
+              "    pm.response.to.have.status(409);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Fair and Lovely Daily Glow Cream\",\n    \"categoryId\": \"{{categoryId}}\",\n    \"price\": 150.00\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/products",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "products"]
+        }
+      }
+    },
+    {
+      "name": "19. Integrity - Delete Category with Active Products Blocked",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 409 Conflict\", function () {",
+              "    pm.response.to.have.status(409);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Informative error message returned\", function () {",
+              "    pm.expect(jsonData.message).to.include('Cannot delete product category that contains active products');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-categories/{{categoryId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-categories", "{{categoryId}}"]
+        }
+      }
+    },
+    {
+      "name": "20. Products - Delete Product",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Product deleted (200 OK)\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/products/{{productId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "products", "{{productId}}"]
+        }
+      }
+    },
+    {
+      "name": "21. Cleanup - Delete Category After Product Deleted",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Empty category deleted successfully\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-categories/{{categoryId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-categories", "{{categoryId}}"]
+        }
+      }
+    }
+  ]
+}

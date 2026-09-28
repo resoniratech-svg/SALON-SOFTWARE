@@ -1,0 +1,1176 @@
+{
+  "info": {
+    "name": "RESpark CRM & Guest 360 Module API Test Suite",
+    "_postman_id": "respark-crm-guest360-api-collection",
+    "description": "Comprehensive Postman test collection for RESpark CRM & Guest 360 Module built strictly from the CRM.mp4 reference video and CRM_frames screenshots. Includes Guest Listing with all 17 columns, Drawer Filters (Gender, Special Day, Visit Type, Non-returning, Spend, Balances), Quick Lookup, Guest 360 Aggregation across all 15 tabs, Add Membership with split payments and auto-invoicing (MEM/0001, PR/xxxx), Add Package, Wallet (Advance deposits & Due settlements), Follow-ups, Notes, Family Members, and Custom Consultation Forms.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "guestId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "guestMobile",
+      "value": "+919876543210",
+      "type": "string"
+    },
+    {
+      "key": "membershipPlanId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "packageId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "followUpId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "noteId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "familyMemberId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Login Admin (Save Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "if (res.data && res.data.token) {",
+                  "    pm.collectionVariables.set('token', res.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@respark.test\",\n  \"password\": \"Admin@123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Guest Management (Add & Lookup)",
+      "item": [
+        {
+          "name": "Create Guest (Add Guest Modal)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "if (res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('guestId', res.data.id);",
+                  "    pm.collectionVariables.set('guestMobile', res.data.mobile);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Pooja Hegde\",\n  \"mobile\": \"+919876543210\",\n  \"alternateMobile\": \"+919876543211\",\n  \"email\": \"pooja@example.com\",\n  \"dateOfBirth\": \"1995-04-15T00:00:00.000Z\",\n  \"anniversary\": \"2022-11-20T00:00:00.000Z\",\n  \"gender\": \"FEMALE\",\n  \"hairType\": \"Straight Hair\",\n  \"gstNumber\": \"27AAAAA0000A1Z5\",\n  \"store\": \"kalyaninagar\",\n  \"address\": \"Flat 402, Sunshine Heights\",\n  \"city\": \"Pune\",\n  \"state\": \"Maharashtra\",\n  \"country\": \"India\",\n  \"postalCode\": \"411006\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/guests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "guests"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Quick Lookup by Mobile (POS / CRM bar)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('Returns guest with matched mobile', () => {",
+                  "    pm.expect(res.data).to.be.an('object');",
+                  "    pm.expect(res.data.name).to.be.a('string');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/guests/lookup/{{guestMobile}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "guests",
+                "lookup",
+                "{{guestMobile}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Guest Details by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/guests/{{guestId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "guests",
+                "{{guestId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Guest Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Pooja Hegde Senior\",\n  \"hairType\": \"Curly Hair\",\n  \"notes\": \"Prefers herbal and organic shampoos\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/guests/{{guestId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "guests",
+                "{{guestId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Guest Status / Block",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isBlocked\": false,\n  \"blockReason\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/guests/{{guestId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "guests",
+                "{{guestId}}",
+                "status"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. CRM Table Listing & Advanced Filters",
+      "item": [
+        {
+          "name": "CRM Guest List (All 17 Table Columns)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('Has items and pagination', () => {",
+                  "    pm.expect(res.data.items).to.be.an('array');",
+                  "    pm.expect(res.data.pagination).to.be.an('object');",
+                  "    if (res.data.items.length > 0) {",
+                  "        const g = res.data.items[0];",
+                  "        pm.expect(g).to.have.property('mobile');",
+                  "        pm.expect(g).to.have.property('name');",
+                  "        pm.expect(g).to.have.property('gender');",
+                  "        pm.expect(g).to.have.property('totalOrders');",
+                  "        pm.expect(g).to.have.property('totalPurchaseAmount');",
+                  "        pm.expect(g).to.have.property('averagePurchaseAmount');",
+                  "        pm.expect(g).to.have.property('onlineVisits');",
+                  "        pm.expect(g).to.have.property('loyalty');",
+                  "        pm.expect(g).to.have.property('advance');",
+                  "        pm.expect(g).to.have.property('balance');",
+                  "        pm.expect(g).to.have.property('membershipCount');",
+                  "        pm.expect(g).to.have.property('hairType');",
+                  "        pm.expect(g).to.have.property('store');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/crm/guests/crm?page=1&limit=25",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "crm",
+                "guests",
+                "crm"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "25"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter by Special Day (Birthday)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/crm/guests/crm?specialDay=BIRTHDAY",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "crm",
+                "guests",
+                "crm"
+              ],
+              "query": [
+                {
+                  "key": "specialDay",
+                  "value": "BIRTHDAY"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter by Special Day (Anniversary)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/crm/guests/crm?specialDay=ANNIVERSARY",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "crm",
+                "guests",
+                "crm"
+              ],
+              "query": [
+                {
+                  "key": "specialDay",
+                  "value": "ANNIVERSARY"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter by Visit Type (New Guest vs Repetitive)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/crm/guests/crm?visitType=NEW_GUEST",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "crm",
+                "guests",
+                "crm"
+              ],
+              "query": [
+                {
+                  "key": "visitType",
+                  "value": "NEW_GUEST"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter by Non-Returning Guests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/crm/guests/crm?lastVisited=NON_RETURNING",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "crm",
+                "guests",
+                "crm"
+              ],
+              "query": [
+                {
+                  "key": "lastVisited",
+                  "value": "NON_RETURNING"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter by Wallet Advances & Due Balances",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/crm/guests/crm?hasAdvance=true&hasBalance=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "crm",
+                "guests",
+                "crm"
+              ],
+              "query": [
+                {
+                  "key": "hasAdvance",
+                  "value": "true"
+                },
+                {
+                  "key": "hasBalance",
+                  "value": "false"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter by Spend Range & Store",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/crm/guests/crm?minPurchaseAmount=500&maxPurchaseAmount=50000&store=kalyaninagar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "crm",
+                "guests",
+                "crm"
+              ],
+              "query": [
+                {
+                  "key": "minPurchaseAmount",
+                  "value": "500"
+                },
+                {
+                  "key": "maxPurchaseAmount",
+                  "value": "50000"
+                },
+                {
+                  "key": "store",
+                  "value": "kalyaninagar"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Guest 360 Full Profile (All 15 Tabs)",
+      "item": [
+        {
+          "name": "Get Guest 360 Complete Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('Includes all profile tabs and metrics', () => {",
+                  "    pm.expect(res.data).to.have.property('profileInfo');",
+                  "    pm.expect(res.data).to.have.property('orders');",
+                  "    pm.expect(res.data).to.have.property('memberships');",
+                  "    pm.expect(res.data).to.have.property('packages');",
+                  "    pm.expect(res.data).to.have.property('walletTransactions');",
+                  "    pm.expect(res.data).to.have.property('followUps');",
+                  "    pm.expect(res.data).to.have.property('notes');",
+                  "    pm.expect(res.data).to.have.property('familyMembers');",
+                  "    pm.expect(res.data).to.have.property('forms');",
+                  "    pm.expect(res.data).to.have.property('pastBookings');",
+                  "    pm.expect(res.data).to.have.property('metrics');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/guests/{{guestId}}/360",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "guests",
+                "{{guestId}}",
+                "360"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Referrals by Guest",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/guests/{{guestId}}/referrals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "guests",
+                "{{guestId}}",
+                "referrals"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Guest 360 Tab: Memberships",
+      "item": [
+        {
+          "name": "Add Membership (Auto MEM/0001, PR/xxxx & Split Payment)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const res = pm.response.json();",
+                  "pm.test('Auto-generated invoice starts with MEM/', () => {",
+                  "    pm.expect(res.data.invoiceNumber).to.match(/^MEM\\//);",
+                  "    pm.expect(res.data.code).to.match(/^PR\\//);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planName\": \"Platinum VIP Membership\",\n  \"membershipId\": null,\n  \"price\": 5000,\n  \"creditAmount\": 6000,\n  \"validityMonths\": 12,\n  \"payments\": [\n    {\n      \"method\": \"CASH\",\n      \"amount\": 3000\n    },\n    {\n      \"method\": \"CARD\",\n      \"amount\": 2000,\n      \"reference\": \"CARD-9921\"\n    }\n  ],\n  \"notes\": \"Purchased at kalyaninagar store\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/guests/{{guestId}}/memberships",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "guests",
+                "{{guestId}}",
+                "memberships"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Guest 360 Tab: Packages",
+      "item": [
+        {
+          "name": "Add Package (Sessions & Validity)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const res = pm.response.json();",
+                  "pm.test('Package sessions initialized', () => {",
+                  "    pm.expect(res.data.totalSessions).to.eql(10);",
+                  "    pm.expect(res.data.remainingSessions).to.eql(10);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"packageName\": \"Bridal Makeover Package\",\n  \"price\": 12000,\n  \"totalSessions\": 10,\n  \"validityMonths\": 6,\n  \"notes\": \"Pre-wedding groom sessions\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/guests/{{guestId}}/packages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "guests",
+                "{{guestId}}",
+                "packages"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Guest 360 Tab: Wallet (Advance & Due Balances)",
+      "item": [
+        {
+          "name": "Deposit Advance (Credits Wallet)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const res = pm.response.json();",
+                  "pm.test('Advance balance increased', () => {",
+                  "    pm.expect(Number(res.data.guestAdvanceBalance)).to.be.at.least(2500);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"ADVANCE_DEPOSIT\",\n  \"amount\": 2500,\n  \"paymentMethod\": \"UPI\",\n  \"notes\": \"Client deposited advance for future coloring services\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/guests/{{guestId}}/wallet",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "guests",
+                "{{guestId}}",
+                "wallet"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Settle Due Balance",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"DUE_BALANCE_SETTLEMENT\",\n  \"amount\": 500,\n  \"paymentMethod\": \"CASH\",\n  \"notes\": \"Settled overdue balance at reception\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/guests/{{guestId}}/wallet",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "guests",
+                "{{guestId}}",
+                "wallet"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Guest 360 Tab: Follow-ups",
+      "item": [
+        {
+          "name": "Create Follow-up Task",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('followUpId', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"task\": \"Call guest to inquire about Keratin post-wash satisfaction\",\n  \"dueDate\": \"2026-10-01T10:00:00.000Z\",\n  \"status\": \"PENDING\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/guests/{{guestId}}/follow-ups",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "guests",
+                "{{guestId}}",
+                "follow-ups"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Follow-up Status to Completed",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"COMPLETED\",\n  \"notes\": \"Guest is extremely pleased with the result!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/guests/{{guestId}}/follow-ups/{{followUpId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "guests",
+                "{{guestId}}",
+                "follow-ups",
+                "{{followUpId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Guest 360 Tab: Notes & Preferences",
+      "item": [
+        {
+          "name": "Add Guest Note (Allergies / Preferences)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('noteId', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Sensitive scalp - do not apply bleach directly to roots.\",\n  \"category\": \"HEALTH\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/guests/{{guestId}}/notes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "guests",
+                "{{guestId}}",
+                "notes"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Guest Note",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/guests/{{guestId}}/notes/{{noteId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "guests",
+                "{{guestId}}",
+                "notes",
+                "{{noteId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Guest 360 Tab: Family Members",
+      "item": [
+        {
+          "name": "Add Family Member",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('familyMemberId', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rohan Hegde\",\n  \"relation\": \"SPOUSE\",\n  \"mobile\": \"+919876543299\",\n  \"gender\": \"MALE\",\n  \"dateOfBirth\": \"1992-08-10T00:00:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/guests/{{guestId}}/family",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "guests",
+                "{{guestId}}",
+                "family"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Family Member",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/guests/{{guestId}}/family/{{familyMemberId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "guests",
+                "{{guestId}}",
+                "family",
+                "{{familyMemberId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. Guest 360 Tab: Consultation Forms",
+      "item": [
+        {
+          "name": "Submit Consultation Form",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"formName\": \"Hair Treatment Pre-Consultation Form\",\n  \"answers\": {\n    \"previousHairTreatments\": \"Keratin done 6 months ago\",\n    \"scalpSensitivity\": \"Moderate\",\n    \"dailyHairWashing\": false,\n    \"allergies\": \"None reported\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/guests/{{guestId}}/forms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "guests",
+                "{{guestId}}",
+                "forms"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

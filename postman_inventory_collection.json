@@ -1,0 +1,1512 @@
+{
+  "info": {
+    "name": "RESpark Inventory & Stock Management API Test Suite",
+    "_postman_id": "respark-inventory-api-collection",
+    "description": "Comprehensive Postman test collection for the RESpark Inventory & Stock Management module built strictly from the video reference and UI screens. Includes Authentication, Dashboard Summary, Vendor Management (full CRUD & validation), Purchase Orders (lifecycle, calculations, partial/full receive, rejection, cancellations), Transfer Requests (same location rejection, stock availability check, dispatch & receive), Centralized Approvals Inbox, Stock Reconciliation (positive/negative adjustments, bulk reconciliation, CSV export), and Security & Input testing.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "vendorId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "poId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "trId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "productId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "disposableId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Login Admin (Save Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+                  "if (res.data && res.data.token) {",
+                  "    pm.collectionVariables.set('token', res.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"DevelopmentPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Inventory Dashboard",
+      "item": [
+        {
+          "name": "Get Inventory Dashboard Overview",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('Returns dashboard summary with all metrics', () => {",
+                  "    pm.expect(res.data).to.have.property('inventorySummary');",
+                  "    pm.expect(res.data.inventorySummary).to.have.property('stockInHand');",
+                  "    pm.expect(res.data.inventorySummary).to.have.property('stockYetToBeReceived');",
+                  "    pm.expect(res.data).to.have.property('productSummary');",
+                  "    pm.expect(res.data.productSummary).to.have.property('totalItems');",
+                  "    pm.expect(res.data.productSummary).to.have.property('activeItems');",
+                  "    pm.expect(res.data.productSummary).to.have.property('inactiveItems');",
+                  "    pm.expect(res.data).to.have.property('transferRequest');",
+                  "    pm.expect(res.data).to.have.property('topSellingItems');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "dashboard"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Vendor Management",
+      "item": [
+        {
+          "name": "Create Vendor (Full Details)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 Created', () => pm.response.to.have.status(201));",
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('vendorId', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vendorName\": \"Rajesh Sharma\",\n  \"firmName\": \"Loreal India Distributors Ltd\",\n  \"mobile\": \"9822012345\",\n  \"alternateMobile\": \"9822054321\",\n  \"email\": \"rajesh@loreal-dist.com\",\n  \"gstNumber\": \"27AAAAA0000A1Z5\",\n  \"address\": \"Shop 14, Commercial Complex, MG Road\",\n  \"area\": \"Camp\",\n  \"landmark\": \"Near Victory Theatre\",\n  \"city\": \"Pune\",\n  \"pincode\": \"411001\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/vendors",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "vendors"]
+            }
+          }
+        },
+        {
+          "name": "Get Vendors List (Search & Filter)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('Vendors list array returned', () => {",
+                  "    pm.expect(res.vendors).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/vendors?search=Rajesh&isActive=true&page=1&limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "vendors"],
+              "query": [
+                { "key": "search", "value": "Rajesh" },
+                { "key": "isActive", "value": "true" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "50" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Vendor By ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/vendors/{{vendorId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "vendors", "{{vendorId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Vendor Details",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vendorName\": \"Rajesh Kumar Sharma\",\n  \"city\": \"Pune Central\",\n  \"area\": \"Koregaon Park\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/vendors/{{vendorId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "vendors", "{{vendorId}}"]
+            }
+          }
+        },
+        {
+          "name": "Set Vendor Catalogue & Contract Prices",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"price\": 800\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/vendors/{{vendorId}}/items",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "vendors", "{{vendorId}}", "items"]
+            }
+          }
+        },
+        {
+          "name": "Negative: Reject Duplicate Firm Name",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400 Bad Request', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vendorName\": \"Rajesh Duplicate\",\n  \"firmName\": \"Loreal India Distributors Ltd\",\n  \"mobile\": \"9822099999\",\n  \"address\": \"Another address\",\n  \"city\": \"Pune\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/vendors",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "vendors"]
+            }
+          }
+        },
+        {
+          "name": "Negative: Reject Invalid GST Format",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400 Validation Error', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vendorName\": \"Bad GST Vendor\",\n  \"firmName\": \"Bad GST Firm\",\n  \"mobile\": \"9822088888\",\n  \"gstNumber\": \"INVALIDGST123\",\n  \"address\": \"Test Address\",\n  \"city\": \"Pune\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/vendors",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "vendors"]
+            }
+          }
+        },
+        {
+          "name": "Negative: Reject Vendor Deletion With Existing POs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400 Bad Request', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/vendors/{{vendorId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "vendors", "{{vendorId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Purchase Orders (PO)",
+      "item": [
+        {
+          "name": "Create Purchase Order (Single Item)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 Created', () => pm.response.to.have.status(201));",
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('poId', res.data.id);",
+                  "}",
+                  "pm.test('PO Number convention Inv/Po/{N}', () => {",
+                  "    pm.expect(res.data.poNumber).to.match(/^Inv\\/Po\\//);",
+                  "});",
+                  "pm.test('Calculates totalItems and totalValue accurately', () => {",
+                  "    pm.expect(res.data.totalItems).to.eql(10);",
+                  "    pm.expect(Number(res.data.totalValue)).to.eql(8000);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vendorId\": \"{{vendorId}}\",\n  \"expectedDate\": \"2026-10-05\",\n  \"poDate\": \"2026-09-25\",\n  \"comment\": \"Stock order for weekend footfall\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"requiredQty\": 10,\n      \"price\": 800,\n      \"servicesPercent\": 5\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/purchase-orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "purchase-orders"]
+            }
+          }
+        },
+        {
+          "name": "Create Multi-Item PO with Decimal Rates",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 Created', () => pm.response.to.have.status(201));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vendorId\": \"{{vendorId}}\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"requiredQty\": 5,\n      \"price\": 799.50\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/purchase-orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "purchase-orders"]
+            }
+          }
+        },
+        {
+          "name": "Get Purchase Orders List (Filter by Status)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('Has statusCounts and orders array', () => {",
+                  "    pm.expect(res).to.have.property('statusCounts');",
+                  "    pm.expect(res.orders).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/purchase-orders?status=PLACED&page=1&limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "purchase-orders"],
+              "query": [
+                { "key": "status", "value": "PLACED" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "50" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search PO by poNumber",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/purchase-orders?search=Inv/Po/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "purchase-orders"],
+              "query": [
+                { "key": "search", "value": "Inv/Po/" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get PO by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/purchase-orders/{{poId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "purchase-orders", "{{poId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update PO while PLACED",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"Updated delivery instructions\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"requiredQty\": 12,\n      \"price\": 800,\n      \"servicesPercent\": 5\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/purchase-orders/{{poId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "purchase-orders", "{{poId}}"]
+            }
+          }
+        },
+        {
+          "name": "Approve Purchase Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('PO status is now APPROVED', () => {",
+                  "    pm.expect(res.data.status).to.eql('APPROVED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/purchase-orders/{{poId}}/approve",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "purchase-orders", "{{poId}}", "approve"]
+            }
+          }
+        },
+        {
+          "name": "Partial Receive PO Items",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('Status transitioned to PARTIAL_SETTLED', () => {",
+                  "    pm.expect(res.data.status).to.eql('PARTIAL_SETTLED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"Partial delivery of 5 units received\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/purchase-orders/{{poId}}/receive",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "purchase-orders", "{{poId}}", "receive"]
+            }
+          }
+        },
+        {
+          "name": "Settle Remaining PO Items",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('Status transitioned to SETTLED', () => {",
+                  "    pm.expect(res.data.status).to.eql('SETTLED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"Remaining consignment received in full\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/purchase-orders/{{poId}}/receive",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "purchase-orders", "{{poId}}", "receive"]
+            }
+          }
+        },
+        {
+          "name": "Reject Purchase Order Flow",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Quotation rate mismatch with agreement\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/purchase-orders/{{poId}}/reject",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "purchase-orders", "{{poId}}", "reject"]
+            }
+          }
+        },
+        {
+          "name": "Cancel Purchase Order Flow",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Order cancelled by salon manager\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/purchase-orders/{{poId}}/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "purchase-orders", "{{poId}}", "cancel"]
+            }
+          }
+        },
+        {
+          "name": "Negative: Reject PO with Quantity = 0",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400 Validation Error', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vendorId\": \"{{vendorId}}\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"requiredQty\": 0,\n      \"price\": 800\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/purchase-orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "purchase-orders"]
+            }
+          }
+        },
+        {
+          "name": "Negative: Reject Duplicate Items in PO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400 Bad Request', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vendorId\": \"{{vendorId}}\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"requiredQty\": 3,\n      \"price\": 800\n    },\n    {\n      \"productId\": \"{{productId}}\",\n      \"requiredQty\": 2,\n      \"price\": 800\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/purchase-orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "purchase-orders"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Transfer Requests (TR)",
+      "item": [
+        {
+          "name": "Create Transfer Request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 Created', () => pm.response.to.have.status(201));",
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('trId', res.data.id);",
+                  "}",
+                  "pm.test('TR Number convention Inv/Tr/{N}', () => {",
+                  "    pm.expect(res.data.trNumber).to.match(/^Inv\\/Tr\\//);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sender\": \"wadgaonsheri\",\n  \"requestor\": \"kalyaninagar\",\n  \"expectedDate\": \"2026-10-02\",\n  \"comment\": \"Inter-branch stock transfer for Keratin clients\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"requestedQty\": 4,\n      \"price\": 950\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/transfer-requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "transfer-requests"]
+            }
+          }
+        },
+        {
+          "name": "Get Transfer Requests List",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('Has statusCounts and requests array', () => {",
+                  "    pm.expect(res).to.have.property('statusCounts');",
+                  "    pm.expect(res.requests).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/transfer-requests?status=TRANSFER_IN&page=1&limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "transfer-requests"],
+              "query": [
+                { "key": "status", "value": "TRANSFER_IN" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "50" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get TR by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/transfer-requests/{{trId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "transfer-requests", "{{trId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update TR Details while REQUESTED",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sender\": \"baner\",\n  \"comment\": \"Changed sender to Baner warehouse\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/transfer-requests/{{trId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "transfer-requests", "{{trId}}"]
+            }
+          }
+        },
+        {
+          "name": "Approve Transfer Request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('TR status is APPROVED', () => {",
+                  "    pm.expect(res.data.status).to.eql('APPROVED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/transfer-requests/{{trId}}/approve",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "transfer-requests", "{{trId}}", "approve"]
+            }
+          }
+        },
+        {
+          "name": "Dispatch Transfer Request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('TR status is DISPATCHED', () => {",
+                  "    pm.expect(res.data.status).to.eql('DISPATCHED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/transfer-requests/{{trId}}/dispatch",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "transfer-requests", "{{trId}}", "dispatch"]
+            }
+          }
+        },
+        {
+          "name": "Receive Transfer Request (Stock Updated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('TR status is RECEIVED', () => {",
+                  "    pm.expect(res.data.status).to.eql('RECEIVED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/transfer-requests/{{trId}}/receive",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "transfer-requests", "{{trId}}", "receive"]
+            }
+          }
+        },
+        {
+          "name": "Negative: Reject Same Source & Destination Locations",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400 Bad Request', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sender\": \"kalyaninagar\",\n  \"requestor\": \"kalyaninagar\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"requestedQty\": 2,\n      \"price\": 950\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/transfer-requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "transfer-requests"]
+            }
+          }
+        },
+        {
+          "name": "Negative: Reject Excess Stock Transfer Request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400 Bad Request', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sender\": \"wadgaonsheri\",\n  \"requestor\": \"kalyaninagar\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"requestedQty\": 99999,\n      \"price\": 950\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/transfer-requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "transfer-requests"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Approvals Centralized Inbox",
+      "item": [
+        {
+          "name": "Get Pending Approvals (POs & TRs)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('Has counts and pending lists', () => {",
+                  "    pm.expect(res.data).to.have.property('counts');",
+                  "    pm.expect(res.data).to.have.property('purchaseOrders');",
+                  "    pm.expect(res.data).to.have.property('transferRequests');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/approvals",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "approvals"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Stock Reconciliation",
+      "item": [
+        {
+          "name": "Get Stock Reconciliation Items",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('Returns items array with audit columns', () => {",
+                  "    pm.expect(res.data).to.be.an('array');",
+                  "    if (res.data.length > 0) {",
+                  "        const item = res.data[0];",
+                  "        pm.expect(item).to.have.property('itemName');",
+                  "        pm.expect(item).to.have.property('actualStock');",
+                  "        pm.expect(item).to.have.property('adjustStock');",
+                  "        pm.expect(item).to.have.property('stockDifference');",
+                  "        pm.expect(item).to.have.property('stockValue');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/reconciliation?type=ALL",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "reconciliation"],
+              "query": [
+                { "key": "type", "value": "ALL" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Positive Stock Adjustment (Inward Stock Correction)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('Stock difference calculated accurately', () => {",
+                  "    pm.expect(res.data.difference).to.eql(10);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemId\": \"{{productId}}\",\n  \"itemType\": \"PRODUCT\",\n  \"actualStock\": 10,\n  \"adjustStock\": 20,\n  \"remark\": \"Physical audit: Found unopened carton in storage\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/reconciliation/adjust",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "reconciliation", "adjust"]
+            }
+          }
+        },
+        {
+          "name": "Negative Stock Adjustment (Outward Breakage Correction)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test('Negative difference calculated accurately', () => {",
+                  "    pm.expect(res.data.difference).to.eql(-4);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemId\": \"{{productId}}\",\n  \"itemType\": \"PRODUCT\",\n  \"actualStock\": 20,\n  \"adjustStock\": 16,\n  \"remark\": \"4 bottles broken during shelf reorganization\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/reconciliation/adjust",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "reconciliation", "adjust"]
+            }
+          }
+        },
+        {
+          "name": "Bulk Stock Reconciliation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"itemId\": \"{{productId}}\",\n      \"itemType\": \"PRODUCT\",\n      \"actualStock\": 16,\n      \"adjustStock\": 25,\n      \"remark\": \"Quarterly audit update\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/reconciliation/bulk-adjust",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "reconciliation", "bulk-adjust"]
+            }
+          }
+        },
+        {
+          "name": "Export Reconciliation as CSV",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Content-Type is text/csv', () => {",
+                  "    pm.expect(pm.response.headers.get('content-type')).to.include('text/csv');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/reconciliation/export",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "reconciliation", "export"]
+            }
+          }
+        },
+        {
+          "name": "Negative: Reject Adjustment Without Remark",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400 Bad Request', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemId\": \"{{productId}}\",\n  \"itemType\": \"PRODUCT\",\n  \"actualStock\": 10,\n  \"adjustStock\": 15,\n  \"remark\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/reconciliation/adjust",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "reconciliation", "adjust"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Security & Input Testing",
+      "item": [
+        {
+          "name": "SQL Injection in Search Query",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 OK without crash', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/vendors?search=' OR '1'='1' --",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "vendors"],
+              "query": [
+                { "key": "search", "value": "' OR '1'='1' --" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "XSS Script Tag in PO Comment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 Created and safely persisted', () => pm.response.to.have.status(201));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vendorId\": \"{{vendorId}}\",\n  \"comment\": \"<script>alert('XSS')</script><img src=x onerror=alert(1)>\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"requiredQty\": 1,\n      \"price\": 800\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/purchase-orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "purchase-orders"]
+            }
+          }
+        },
+        {
+          "name": "Unicode & Emojis in Vendor Creation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 Created and characters preserved', () => pm.response.to.have.status(201));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vendorName\": \"サロン 💆‍♀️ Vendor\",\n  \"firmName\": \"Shampoo & Spa 🧴 Tokyo-Pune\",\n  \"mobile\": \"9822998877\",\n  \"address\": \"東京都 渋谷区 1-2-3 / Pune Station\",\n  \"city\": \"Pune\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/vendors",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inventory", "vendors"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,997 @@
+{
+  "info": {
+    "_postman_id": "respark-module-07-disposables-suite",
+    "name": "RESpark - Module 07: Disposables Suite",
+    "description": "Comprehensive integration & test suite for RESpark Module 07: Disposables Master. Validates barcode generation, default values, full-specification creation, validation errors (400/409), filters, search, pagination, updates, status toggles, deletion, RBAC enforcement (Receptionist vs Admin), and cleanup.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01. Auth - Admin Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Admin token acquired\", function () {",
+              "    pm.expect(jsonData.data.token).to.be.a('string');",
+              "    pm.environment.set(\"adminToken\", jsonData.data.token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"username\": \"{{adminUsername}}\",\n    \"password\": \"{{adminPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "02. Auth - Receptionist Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Receptionist token acquired\", function () {",
+              "    pm.expect(jsonData.data.token).to.be.a('string');",
+              "    pm.environment.set(\"receptionistToken\", jsonData.data.token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"username\": \"{{receptionistUsername}}\",\n    \"password\": \"{{receptionistPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "03. Setup - Create Test Product Category",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201 or 200\", function () {",
+              "    pm.expect([200, 201]).to.include(pm.response.code);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "if (jsonData.data && jsonData.data.id) {",
+              "    pm.environment.set(\"testCategoryId\", jsonData.data.id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Disposables Master Cat {{timestamp}}\",\n    \"position\": 1,\n    \"group\": \"Both\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/product-categories",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-categories"]
+        }
+      }
+    },
+    {
+      "name": "04. Disposables - Generate Barcode",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Generated barcode string is valid\", function () {",
+              "    pm.expect(jsonData.data.barcode).to.be.a('string');",
+              "    pm.expect(jsonData.data.barcode.length).to.be.at.least(10);",
+              "    pm.environment.set(\"generatedBarcode\", jsonData.data.barcode);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/disposables/generate-barcode",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "disposables", "generate-barcode"]
+        }
+      }
+    },
+    {
+      "name": "05. Disposables - Create Minimal Disposable (Defaults)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Default values applied properly\", function () {",
+              "    pm.expect(jsonData.data.name).to.eql(\"Standard Wooden Spatula\");",
+              "    pm.expect(jsonData.data.category).to.eql(\"Disposables\");",
+              "    pm.expect(Number(jsonData.data.price)).to.eql(0);",
+              "    pm.expect(Number(jsonData.data.quantity)).to.eql(1);",
+              "    pm.expect(jsonData.data.unit).to.eql(\"pcs\");",
+              "    pm.expect(jsonData.data.gender).to.eql(\"Both\");",
+              "    pm.expect(jsonData.data.isRetail).to.eql(false);",
+              "    pm.expect(jsonData.data.isActive).to.eql(true);",
+              "    pm.environment.set(\"minimalDisposableId\", jsonData.data.id);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Standard Wooden Spatula\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/disposables",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "disposables"]
+        }
+      }
+    },
+    {
+      "name": "06. Disposables - Create Full Specification Disposable (Large Gloves)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Fields matched accurately\", function () {",
+              "    pm.expect(jsonData.data.name).to.eql(\"Large Gloves\");",
+              "    pm.expect(jsonData.data.code).to.eql(\"DISP-GLV-001\");",
+              "    pm.expect(Number(jsonData.data.price)).to.eql(25.5);",
+              "    pm.expect(Number(jsonData.data.salePrice)).to.eql(20);",
+              "    pm.expect(Number(jsonData.data.quantity)).to.eql(100);",
+              "    pm.expect(jsonData.data.unit).to.eql(\"box\");",
+              "    pm.expect(jsonData.data.isNonDiscountable).to.eql(true);",
+              "    pm.environment.set(\"disposableId\", jsonData.data.id);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Large Gloves\",\n    \"code\": \"DISP-GLV-001\",\n    \"category\": \"Disposables\",\n    \"categoryId\": \"{{testCategoryId}}\",\n    \"price\": 25.50,\n    \"salePrice\": 20.00,\n    \"quantity\": 100,\n    \"unit\": \"box\",\n    \"gender\": \"Both\",\n    \"isRetail\": false,\n    \"hideFromCatalogue\": false,\n    \"isNonDiscountable\": true,\n    \"description\": \"Latex powder-free examination gloves, Large size\",\n    \"barcode\": \"{{generatedBarcode}}\",\n    \"position\": 1,\n    \"hsnCode\": \"4015\",\n    \"productTag\": \"Sanitation\",\n    \"isActive\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/disposables",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "disposables"]
+        }
+      }
+    },
+    {
+      "name": "07. Disposables - Validation - Missing Name (400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 400 Bad Request\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"price\": 10.00\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/disposables",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "disposables"]
+        }
+      }
+    },
+    {
+      "name": "08. Disposables - Validation - Negative Price (400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 400 Bad Request\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Invalid Price Item\",\n    \"price\": -5.00\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/disposables",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "disposables"]
+        }
+      }
+    },
+    {
+      "name": "09. Disposables - Validation - Negative Quantity (400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 400 Bad Request\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Invalid Quantity Item\",\n    \"quantity\": -10\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/disposables",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "disposables"]
+        }
+      }
+    },
+    {
+      "name": "10. Disposables - Validation - Duplicate Name In Category (409 Conflict)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 409 Conflict\", function () {",
+              "    pm.response.to.have.status(409);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"large gloves\",\n    \"category\": \"disposables\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/disposables",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "disposables"]
+        }
+      }
+    },
+    {
+      "name": "11. Disposables - Validation - Duplicate Code (409 Conflict)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 409 Conflict\", function () {",
+              "    pm.response.to.have.status(409);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Another Gloves Model\",\n    \"code\": \"DISP-GLV-001\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/disposables",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "disposables"]
+        }
+      }
+    },
+    {
+      "name": "12. Disposables - List All Disposables (Pagination)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Pagination response is well-structured\", function () {",
+              "    pm.expect(jsonData.data.items).to.be.an('array');",
+              "    pm.expect(jsonData.data.pagination).to.be.an('object');",
+              "    pm.expect(jsonData.data.pagination.page).to.eql(1);",
+              "    pm.expect(jsonData.data.pagination.limit).to.eql(10);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/disposables?page=1&limit=10&sortBy=position&sortOrder=asc",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "disposables"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "10" },
+            { "key": "sortBy", "value": "position" },
+            { "key": "sortOrder", "value": "asc" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "13. Disposables - List Filter by Category",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"All items belong to Disposables category\", function () {",
+              "    jsonData.data.items.forEach(function(item) {",
+              "        pm.expect(item.category.toLowerCase()).to.eql('disposables');",
+              "    });",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/disposables?category=Disposables",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "disposables"],
+          "query": [
+            { "key": "category", "value": "Disposables" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "14. Disposables - List Filter by Unit",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"All items have unit box\", function () {",
+              "    jsonData.data.items.forEach(function(item) {",
+              "        pm.expect(item.unit.toLowerCase()).to.eql('box');",
+              "    });",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/disposables?unit=box",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "disposables"],
+          "query": [
+            { "key": "unit", "value": "box" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "15. Disposables - List Search",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Search query finds Large Gloves\", function () {",
+              "    var found = jsonData.data.items.some(function(item) {",
+              "        return item.name === 'Large Gloves';",
+              "    });",
+              "    pm.expect(found).to.be.true;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/disposables?search=Large%20Gloves",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "disposables"],
+          "query": [
+            { "key": "search", "value": "Large Gloves" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "16. Disposables - Get Disposable by ID (200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Disposable retrieved with relations\", function () {",
+              "    pm.expect(jsonData.data.id).to.eql(pm.environment.get(\"disposableId\"));",
+              "    pm.expect(jsonData.data.name).to.eql(\"Large Gloves\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/disposables/{{disposableId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "disposables", "{{disposableId}}"]
+        }
+      }
+    },
+    {
+      "name": "17. Disposables - Get Disposable by Invalid ID (404)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 404 Not Found\", function () {",
+              "    pm.response.to.have.status(404);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/disposables/00000000-0000-0000-0000-000000000000",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "disposables", "00000000-0000-0000-0000-000000000000"]
+        }
+      }
+    },
+    {
+      "name": "18. Disposables - Update Disposable Details (200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Updates applied properly\", function () {",
+              "    pm.expect(jsonData.data.name).to.eql(\"Large Gloves Pro\");",
+              "    pm.expect(Number(jsonData.data.price)).to.eql(28.0);",
+              "    pm.expect(Number(jsonData.data.quantity)).to.eql(120);",
+              "    pm.expect(jsonData.data.unit).to.eql(\"pack\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Large Gloves Pro\",\n    \"price\": 28.00,\n    \"salePrice\": 24.00,\n    \"unit\": \"pack\",\n    \"quantity\": 120,\n    \"description\": \"Updated examination gloves\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/disposables/{{disposableId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "disposables", "{{disposableId}}"]
+        }
+      }
+    },
+    {
+      "name": "19. Disposables - Toggle Status to Inactive (200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Status updated to inactive\", function () {",
+              "    pm.expect(jsonData.data.isActive).to.eql(false);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"isActive\": false\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/disposables/{{disposableId}}/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "disposables", "{{disposableId}}", "status"]
+        }
+      }
+    },
+    {
+      "name": "20. Disposables - Toggle Status to Active (200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Status updated to active\", function () {",
+              "    pm.expect(jsonData.data.isActive).to.eql(true);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"isActive\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/disposables/{{disposableId}}/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "disposables", "{{disposableId}}", "status"]
+        }
+      }
+    },
+    {
+      "name": "21. Disposables - RBAC - Receptionist List (200 OK with DISPOSABLE:READ)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{receptionistToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/disposables",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "disposables"]
+        }
+      }
+    },
+    {
+      "name": "22. Disposables - RBAC - Receptionist Create Attempt (403 Forbidden)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 403 Forbidden\", function () {",
+              "    pm.response.to.have.status(403);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{receptionistToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Receptionist Created Item\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/disposables",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "disposables"]
+        }
+      }
+    },
+    {
+      "name": "23. Disposables - RBAC - Receptionist Update Attempt (403 Forbidden)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 403 Forbidden\", function () {",
+              "    pm.response.to.have.status(403);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{receptionistToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"name\": \"Receptionist Rename\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/disposables/{{disposableId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "disposables", "{{disposableId}}"]
+        }
+      }
+    },
+    {
+      "name": "24. Disposables - RBAC - Receptionist Status Toggle Attempt (403 Forbidden)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 403 Forbidden\", function () {",
+              "    pm.response.to.have.status(403);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{receptionistToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"isActive\": false\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/disposables/{{disposableId}}/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "disposables", "{{disposableId}}", "status"]
+        }
+      }
+    },
+    {
+      "name": "25. Disposables - RBAC - Receptionist Delete Attempt (403 Forbidden)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 403 Forbidden\", function () {",
+              "    pm.response.to.have.status(403);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{receptionistToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/disposables/{{disposableId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "disposables", "{{disposableId}}"]
+        }
+      }
+    },
+    {
+      "name": "26. Disposables - Delete Disposable (200 OK)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/disposables/{{disposableId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "disposables", "{{disposableId}}"]
+        }
+      }
+    },
+    {
+      "name": "27. Disposables - Verify Deleted by ID (404 Not Found)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 404 Not Found\", function () {",
+              "    pm.response.to.have.status(404);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/disposables/{{disposableId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "disposables", "{{disposableId}}"]
+        }
+      }
+    },
+    {
+      "name": "28. Cleanup - Delete Minimal Disposable",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Cleanup minimal disposable returns 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/disposables/{{minimalDisposableId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "disposables", "{{minimalDisposableId}}"]
+        }
+      }
+    },
+    {
+      "name": "29. Cleanup - Delete Test Product Category",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Cleanup category returns 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/product-categories/{{testCategoryId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "product-categories", "{{testCategoryId}}"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    },
+    {
+      "key": "adminUsername",
+      "value": "admin"
+    },
+    {
+      "key": "adminPassword",
+      "value": "DevelopmentPassword123!"
+    },
+    {
+      "key": "receptionistUsername",
+      "value": "receptionist"
+    },
+    {
+      "key": "receptionistPassword",
+      "value": "DevelopmentPassword123!"
+    }
+  ]
+}

@@ -1,0 +1,367 @@
+{
+  "info": {
+    "name": "RESpark Appointments & Calendar Module API Collection",
+    "_postman_id": "respark-appointments-api-v1",
+    "description": "Comprehensive Postman Collection for testing all RESpark Appointments & Scheduling (Calendar) module endpoints based on frames 052-118 of POS dashboard video.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "appointmentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "appointmentNumber",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "serviceId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "staffId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "resourceId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "guestId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01. Authentication",
+      "item": [
+        {
+          "name": "1. Admin Login (Sets Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData && jsonData.data && jsonData.data.token) {",
+                  "    pm.collectionVariables.set(\"token\", jsonData.data.token);",
+                  "    console.log(\"Saved token:\", jsonData.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"DevelopmentPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "2. Cashier Login (Sets Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData && jsonData.data && jsonData.data.token) {",
+                  "    pm.collectionVariables.set(\"token\", jsonData.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"cashier\",\n  \"password\": \"DevelopmentPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02. Calendar Grid & Metrics",
+      "item": [
+        {
+          "name": "1. Get Calendar Grid (Staff View)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/calendar?date=2026-08-26&view=staff",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments", "calendar"],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2026-08-26"
+                },
+                {
+                  "key": "view",
+                  "value": "staff"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "2. Get Calendar Grid (Resource View - Chairs & Rooms)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/calendar?date=2026-08-26&view=resource",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments", "calendar"],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2026-08-26"
+                },
+                {
+                  "key": "view",
+                  "value": "resource"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03. Appointment Creation",
+      "item": [
+        {
+          "name": "1. Create Appointment (Multi-Service & Recommended Staff)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData && jsonData.data && jsonData.data.id) {",
+                  "    pm.collectionVariables.set(\"appointmentId\", jsonData.data.id);",
+                  "    pm.collectionVariables.set(\"appointmentNumber\", jsonData.data.appointmentNumber);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"guest\": {\n    \"name\": \"Prakash Sharma\",\n    \"mobile\": \"9876543210\",\n    \"email\": \"prakash@example.com\",\n    \"gender\": \"MALE\"\n  },\n  \"appointmentDate\": \"2026-08-26\",\n  \"status\": \"CONFIRMED\",\n  \"bookingSource\": \"WALK_IN\",\n  \"instruction\": \"Guest prefers gentle blow dry\",\n  \"confirmationSms\": true,\n  \"smsToOwner\": true,\n  \"items\": [\n    {\n      \"serviceId\": \"{{serviceId}}\",\n      \"staffId\": \"{{staffId}}\",\n      \"resourceId\": \"{{resourceId}}\",\n      \"startTime\": \"19:15\",\n      \"endTime\": \"19:45\",\n      \"price\": 400,\n      \"isRecommendedStaff\": true\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04. Appointment Details & Guest History",
+      "item": [
+        {
+          "name": "1. Get Appointment by ID (Includes Guest History)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/{{appointmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments", "{{appointmentId}}"]
+            }
+          }
+        },
+        {
+          "name": "2. List Appointments (Filters & Pagination)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments?date=2026-08-26&status=CONFIRMED",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments"],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2026-08-26"
+                },
+                {
+                  "key": "status",
+                  "value": "CONFIRMED"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05. Status & Reschedule",
+      "item": [
+        {
+          "name": "1. Check In Appointment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CHECKED_IN\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/{{appointmentId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments", "{{appointmentId}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "2. Reschedule Appointment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"appointmentDate\": \"2026-08-27\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/{{appointmentId}}/reschedule",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments", "{{appointmentId}}", "reschedule"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06. POS Checkout Conversion",
+      "item": [
+        {
+          "name": "1. Checkout Appointment to POS Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/{{appointmentId}}/checkout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments", "{{appointmentId}}", "checkout"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

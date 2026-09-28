@@ -1,0 +1,85 @@
+{
+  "id": "respark-env-id",
+  "name": "RESpark Local Environment",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "adminUsername",
+      "value": "admin",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "adminPassword",
+      "value": "DevelopmentPassword123!",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "adminBUsername",
+      "value": "admin-b",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "adminBPassword",
+      "value": "DevelopmentPassword123!",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "receptionistUsername",
+      "value": "receptionist",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "receptionistPassword",
+      "value": "DevelopmentPassword123!",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "tokenA",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "tokenB",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "tokenReceptionist",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "categoryId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "productId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "disposableId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment"
+}

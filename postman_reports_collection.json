@@ -1,0 +1,868 @@
+{
+  "info": {
+    "_postman_id": "respark-reports-suite-2026",
+    "name": "RESpark Reports & Analytics API (All 41 Reports)",
+    "description": "Comprehensive Postman collection for testing the complete RESpark Reports & Analytics backend suite. Covers all 29 Sales/Revenue reports and all 12 Inventory/PNL reports, date presets, custom filters, and CSV exports.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminUsername",
+      "value": "admin",
+      "type": "string"
+    },
+    {
+      "key": "adminPassword",
+      "value": "DevelopmentPassword123!",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00. Authentication",
+      "item": [
+        {
+          "name": "Admin Login (Auto-captures {{token}})",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.token) {",
+                  "    pm.collectionVariables.set(\"token\", json.data.token);",
+                  "    console.log(\"Saved auth token to collection variables:\", json.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{adminUsername}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Cashier Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"cashier\",\n  \"password\": \"DevelopmentPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "01. Directory & Catalog",
+      "item": [
+        {
+          "name": "Get Reports Catalog (All 41 Reports)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const res = pm.response.json();",
+                  "pm.test(\"Has 41 reports in catalog\", function () {",
+                  "    pm.expect(res.data.totalReports).to.eql(41);",
+                  "    pm.expect(res.data.categories.SALES_REVENUE.length).to.eql(29);",
+                  "    pm.expect(res.data.categories.INVENTORY_PNL.length).to.eql(12);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/catalog",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "catalog"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02. Sales & Revenue Reports (29 Reports)",
+      "item": [
+        {
+          "name": "01. Sales Summary (Default)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+                  "const res = pm.response.json();",
+                  "pm.test(\"Report type is sales-summary\", function () { pm.expect(res.data.reportType).to.eql('sales-summary'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/sales-summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "sales-summary"]
+            }
+          }
+        },
+        {
+          "name": "01. Sales Summary (Preset: Today)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/sales-summary?preset=today",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "sales-summary"],
+              "query": [{ "key": "preset", "value": "today" }]
+            }
+          }
+        },
+        {
+          "name": "01. Sales Summary (Preset: Weekly)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/sales-summary?preset=weekly",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "sales-summary"],
+              "query": [{ "key": "preset", "value": "weekly" }]
+            }
+          }
+        },
+        {
+          "name": "01. Sales Summary (Custom Date Range)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/sales-summary?startDate=2026-01-01&endDate=2026-12-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "sales-summary"],
+              "query": [
+                { "key": "startDate", "value": "2026-01-01" },
+                { "key": "endDate", "value": "2026-12-31" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "01. Sales Summary (CSV Export)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Content-Type is text/csv\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"content-type\")).to.include(\"text/csv\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/sales-summary?format=csv",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "sales-summary"],
+              "query": [{ "key": "format", "value": "csv" }]
+            }
+          }
+        },
+        {
+          "name": "02. Product Revenue",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/product-revenue?group=Both",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "product-revenue"],
+              "query": [{ "key": "group", "value": "Both" }]
+            }
+          }
+        },
+        {
+          "name": "03. Service Revenue",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/service-revenue?group=Both",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "service-revenue"],
+              "query": [{ "key": "group", "value": "Both" }]
+            }
+          }
+        },
+        {
+          "name": "04. Service Reminder",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/service-reminder",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "service-reminder"]
+            }
+          }
+        },
+        {
+          "name": "05. Guest Collection",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/guest-collection",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "guest-collection"]
+            }
+          }
+        },
+        {
+          "name": "06. Feedback",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/feedback",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "feedback"]
+            }
+          }
+        },
+        {
+          "name": "07. Staff Revenue",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/staff-revenue",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "staff-revenue"]
+            }
+          }
+        },
+        {
+          "name": "08. Incentive Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/incentive-report",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "incentive-report"]
+            }
+          }
+        },
+        {
+          "name": "09. Monthly Sale",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/monthly-sale",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "monthly-sale"]
+            }
+          }
+        },
+        {
+          "name": "10. Staff Attendance",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/staff-attendance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "staff-attendance"]
+            }
+          }
+        },
+        {
+          "name": "11. Membership Sold",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/membership-sold",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "membership-sold"]
+            }
+          }
+        },
+        {
+          "name": "12. Membership Redemption",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/membership-redemption",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "membership-redemption"]
+            }
+          }
+        },
+        {
+          "name": "13. Inter-Store Membership",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/inter-store-membership",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "inter-store-membership"]
+            }
+          }
+        },
+        {
+          "name": "14. Packages Sold",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/packages-sold",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "packages-sold"]
+            }
+          }
+        },
+        {
+          "name": "15. Package Redemption",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/package-redemption",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "package-redemption"]
+            }
+          }
+        },
+        {
+          "name": "16. Gift Card Sold Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/gift-card-sold",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "gift-card-sold"]
+            }
+          }
+        },
+        {
+          "name": "17. Gift Card Redemption",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/gift-card-redemption",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "gift-card-redemption"]
+            }
+          }
+        },
+        {
+          "name": "18. Advance Received",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/advance-received",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "advance-received"]
+            }
+          }
+        },
+        {
+          "name": "19. Balance Received",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/balance-received",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "balance-received"]
+            }
+          }
+        },
+        {
+          "name": "20. Coupon Redemption",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/coupon-redemption",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "coupon-redemption"]
+            }
+          }
+        },
+        {
+          "name": "21. Day Wise Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/day-wise",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "day-wise"]
+            }
+          }
+        },
+        {
+          "name": "22. Tip Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/tip-report",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "tip-report"]
+            }
+          }
+        },
+        {
+          "name": "23. Complimentary Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/complimentary-report",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "complimentary-report"]
+            }
+          }
+        },
+        {
+          "name": "24. Cancelled Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/cancelled-orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "cancelled-orders"]
+            }
+          }
+        },
+        {
+          "name": "25. Appointment Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/appointment-report",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "appointment-report"]
+            }
+          }
+        },
+        {
+          "name": "26. GST Returns Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/gst-returns",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "gst-returns"]
+            }
+          }
+        },
+        {
+          "name": "27. Guest Followups",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/guest-followups",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "guest-followups"]
+            }
+          }
+        },
+        {
+          "name": "28. Cash Transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/cash-transactions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "cash-transactions"]
+            }
+          }
+        },
+        {
+          "name": "29. Form History",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/form-history",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "form-history"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03. Inventory & PNL Reports (12 Reports)",
+      "item": [
+        {
+          "name": "30. Daily Stock",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/daily-stock",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "daily-stock"]
+            }
+          }
+        },
+        {
+          "name": "31. Stock Transaction",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/stock-transaction",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "stock-transaction"]
+            }
+          }
+        },
+        {
+          "name": "32. Material Received",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/material-received",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "material-received"]
+            }
+          }
+        },
+        {
+          "name": "33. Minimum Stock",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/minimum-stock",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "minimum-stock"]
+            }
+          }
+        },
+        {
+          "name": "34. Reconcile Stock",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/reconcile-stock",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "reconcile-stock"]
+            }
+          }
+        },
+        {
+          "name": "35. Consumable Tracking",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/consumable-tracking",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "consumable-tracking"]
+            }
+          }
+        },
+        {
+          "name": "36. Stock Transfer",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/stock-transfer",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "stock-transfer"]
+            }
+          }
+        },
+        {
+          "name": "37. Total Consumed",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/total-consumed",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "total-consumed"]
+            }
+          }
+        },
+        {
+          "name": "38. Purchase Order Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/purchase-order",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "purchase-order"]
+            }
+          }
+        },
+        {
+          "name": "39. GST Outwards Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/gst-outwards",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "gst-outwards"]
+            }
+          }
+        },
+        {
+          "name": "40. Inventory Transaction Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/inventory-transaction",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "inventory-transaction"]
+            }
+          }
+        },
+        {
+          "name": "41. PNL Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/pnl-report",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "pnl-report"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
