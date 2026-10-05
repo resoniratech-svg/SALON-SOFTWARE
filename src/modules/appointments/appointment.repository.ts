@@ -509,6 +509,13 @@ export class AppointmentRepository {
         });
       }
 
+      if (data.staffId) {
+        await tx.appointmentItem.updateMany({
+          where: { appointmentId: id, tenantId },
+          data: { staffId: data.staffId },
+        });
+      }
+
       return await tx.appointment.update({
         where: { id },
         data: {
@@ -582,6 +589,14 @@ export class AppointmentRepository {
             });
           }
         }
+      } else if (data.staffId || data.startTime) {
+        await tx.appointmentItem.updateMany({
+          where: { appointmentId: id, tenantId },
+          data: {
+            ...(data.staffId ? { staffId: data.staffId } : {}),
+            ...(data.startTime ? { startTime: data.startTime } : {}),
+          },
+        });
       }
 
       return await tx.appointment.update({
@@ -712,17 +727,68 @@ export class AppointmentRepository {
   }
 
   /**
-   * Delete appointment
+   * Delete appointment and cascade-delete linked POS order if any
    */
   async delete(tenantId: string, id: string) {
-    const existing = await this.prisma.appointment.findFirst({
-      where: { id, tenantId },
-    });
-    if (!existing) return null;
+    const isUuid = typeof id === 'string' && /^[0-9a-fA-F-]{36}$/.test(id);
+    const cleanId = typeof id === 'string' ? id.replace(/^#/, '').trim() : '';
 
-    return await this.prisma.appointment.delete({
-      where: { id },
+    const existing = await this.prisma.appointment.findFirst({
+      where: {
+        tenantId,
+        OR: [
+          ...(isUuid ? [{ id }] : []),
+          { appointmentNumber: id },
+          { appointmentNumber: cleanId },
+          { appointmentNumber: `#${cleanId}` },
+          ...(isUuid ? [{ posOrderId: id }] : []),
+          { posOrder: { orderNumber: id } },
+          { posOrder: { orderNumber: cleanId } },
+        ],
+      },
+      include: {
+        posOrder: true,
+      },
     });
+
+    if (existing) {
+      // 1. If this appointment has a linked POS order, delete the PosOrder too
+      if (existing.posOrderId) {
+        await this.prisma.posOrder.deleteMany({
+          where: { id: existing.posOrderId, tenantId },
+        });
+      }
+
+      // 2. Delete the appointment record (items cascade deleted via relation)
+      return await this.prisma.appointment.delete({
+        where: { id: existing.id },
+      });
+    }
+
+    // If no appointment was found, check if this is a standalone POS order ID/number
+    const posOrder = await this.prisma.posOrder.findFirst({
+      where: {
+        tenantId,
+        OR: [
+          ...(isUuid ? [{ id }] : []),
+          { orderNumber: id },
+          { orderNumber: cleanId },
+          { orderNumber: `#${cleanId}` },
+        ],
+      },
+    });
+
+    if (posOrder) {
+      await this.prisma.appointment.deleteMany({
+        where: { tenantId, posOrderId: posOrder.id },
+      });
+      await this.prisma.posOrder.delete({
+        where: { id: posOrder.id },
+      });
+      return { id: posOrder.id };
+    }
+
+    return null;
   }
 }
 

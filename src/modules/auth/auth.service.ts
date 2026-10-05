@@ -44,6 +44,7 @@ export class AuthService {
         address: string | null;
         contactEmail: string | null;
         contactPhone: string | null;
+        logoUrl?: string | null;
       } | null;
     };
   }> {
@@ -151,6 +152,7 @@ export class AuthService {
               address: user.tenant.address,
               contactEmail: user.tenant.contactEmail,
               contactPhone: user.tenant.contactPhone,
+              logoUrl: user.tenant.logoUrl,
             }
           : null,
       },
@@ -221,6 +223,7 @@ export class AuthService {
             address: user.tenant.address,
             contactEmail: user.tenant.contactEmail,
             contactPhone: user.tenant.contactPhone,
+            logoUrl: user.tenant.logoUrl,
           }
         : null,
     };
@@ -346,7 +349,7 @@ export class AuthService {
         delivery,
       };
 
-      if (!delivery.sent || process.env.NODE_ENV !== 'production') {
+      if (!delivery.sent) {
         response.temporaryPassword = tempPassword;
       }
       if (resetToken) {

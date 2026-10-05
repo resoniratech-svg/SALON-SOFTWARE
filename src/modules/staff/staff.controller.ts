@@ -5,9 +5,22 @@ import { sendResponse } from '../../utils/api-response.js';
 export class StaffController {
   constructor(private service: StaffService = staffService) {}
 
+  private resolveTenantId(req: Request): string {
+    return (
+      req.effectiveTenantId ||
+      req.tenantId ||
+      req.user?.tenantId ||
+      (req.headers['x-tenant-id'] as string) ||
+      (req.headers['x-impersonate-tenant-id'] as string) ||
+      (req.query?.tenantId as string) ||
+      ((req as any).validatedQuery?.tenantId as string) ||
+      req.body?.tenantId
+    ) as string;
+  }
+
   createStaff = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = (req.tenantId || req.user?.tenantId) as string;
+      const tenantId = this.resolveTenantId(req);
       const result = await this.service.createStaff(tenantId, req.body);
       sendResponse(res, 201, true, 'Staff member created successfully', result);
     } catch (error) {
@@ -17,7 +30,7 @@ export class StaffController {
 
   getStaffList = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = (req.tenantId || req.user?.tenantId) as string;
+      const tenantId = this.resolveTenantId(req);
       const query = (req as any).validatedQuery || req.query;
 
       if (query.export === 'csv') {
@@ -40,7 +53,7 @@ export class StaffController {
 
   getStaffProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = (req.tenantId || req.user?.tenantId) as string;
+      const tenantId = this.resolveTenantId(req);
       const id = String(req.params.id);
       const result = await this.service.getStaffById(tenantId, id);
       sendResponse(res, 200, true, 'Staff profile retrieved successfully', result);
@@ -51,7 +64,7 @@ export class StaffController {
 
   updateStaff = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = (req.tenantId || req.user?.tenantId) as string;
+      const tenantId = this.resolveTenantId(req);
       const id = String(req.params.id);
       const result = await this.service.updateStaff(tenantId, id, req.body);
       sendResponse(res, 200, true, 'Staff profile updated successfully', result);
@@ -62,7 +75,7 @@ export class StaffController {
 
   updateStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = (req.tenantId || req.user?.tenantId) as string;
+      const tenantId = this.resolveTenantId(req);
       const id = String(req.params.id);
       const { isActive } = req.body;
       const result = await this.service.updateStatus(tenantId, id, isActive);
@@ -72,9 +85,20 @@ export class StaffController {
     }
   };
 
+  deleteStaff = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = this.resolveTenantId(req);
+      const id = String(req.params.id);
+      const result = await this.service.deleteStaff(tenantId, id);
+      sendResponse(res, 200, true, result.message, result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   getDesignations = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = (req.tenantId || req.user?.tenantId) as string;
+      const tenantId = this.resolveTenantId(req);
       const result = await this.service.getDesignations(tenantId);
       sendResponse(res, 200, true, 'Designations retrieved successfully', result);
     } catch (error) {
@@ -84,7 +108,7 @@ export class StaffController {
 
   getShifts = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = (req.tenantId || req.user?.tenantId) as string;
+      const tenantId = this.resolveTenantId(req);
       const result = await this.service.getShifts(tenantId);
       sendResponse(res, 200, true, 'Shifts retrieved successfully', result);
     } catch (error) {

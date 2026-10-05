@@ -299,12 +299,14 @@ export class ProductService {
   async delete(tenantId: string, id: string) {
     const product = await this.getById(tenantId, id);
     const usage = await this.repo.countHistoricalUsage(tenantId, id);
-    if (usage.total > 0) {
-      throw new AppError(
-        `Cannot delete product '${product.name}' because it is referenced in historical sales orders (${usage.posOrders}), stock transactions (${usage.stockTransactions}), or purchase orders (${usage.purchaseOrders}). Please deactivate it instead.`,
-        409
-      );
+    if (usage.posOrders > 0 || usage.purchaseOrders > 0 || usage.transferRequests > 0) {
+      // Module Isolation: preserve historical sales orders, purchase orders, reports, and drawer cash.
+      // Soft-delete by marking inactive and hiding from catalogue so it is removed from catalog & POS.
+      await this.repo.update(id, { isActive: false, hideFromCatalogue: true });
+      return { success: true, message: 'Product removed from catalog (historical sales records preserved)', softDeleted: true };
     }
+    await prisma.stockTransaction.deleteMany({ where: { tenantId, productId: id } });
+    await prisma.vendorItem.deleteMany({ where: { tenantId, productId: id } });
     await this.repo.delete(id);
     return { success: true, message: 'Product deleted successfully' };
   }

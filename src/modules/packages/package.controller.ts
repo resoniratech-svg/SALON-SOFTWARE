@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import { productCategoryService, ProductCategoryService } from './product-category.service.js';
+import { packageService, PackageService } from './package.service.js';
 import { sendResponse } from '../../utils/api-response.js';
 
-export class ProductCategoryController {
-  constructor(private service: ProductCategoryService = productCategoryService) {}
+export class PackageController {
+  constructor(private service: PackageService = packageService) {}
 
   private resolveTenantId(req: Request): string {
     return (
@@ -21,7 +21,7 @@ export class ProductCategoryController {
     try {
       const tenantId = this.resolveTenantId(req);
       const result = await this.service.create(tenantId, req.body);
-      sendResponse(res, 201, true, 'Product category created successfully', result);
+      sendResponse(res, 201, true, 'Package created successfully', result);
     } catch (error) {
       next(error);
     }
@@ -32,7 +32,7 @@ export class ProductCategoryController {
       const tenantId = this.resolveTenantId(req);
       const query = (req as any).validatedQuery || req.query;
       const result = await this.service.list(tenantId, query);
-      sendResponse(res, 200, true, 'Product categories retrieved successfully', result);
+      sendResponse(res, 200, true, 'Packages retrieved successfully', result);
     } catch (error) {
       next(error);
     }
@@ -43,7 +43,7 @@ export class ProductCategoryController {
       const tenantId = this.resolveTenantId(req);
       const id = String(req.params.id);
       const result = await this.service.getById(tenantId, id);
-      sendResponse(res, 200, true, 'Product category retrieved successfully', result);
+      sendResponse(res, 200, true, 'Package retrieved successfully', result);
     } catch (error) {
       next(error);
     }
@@ -54,7 +54,7 @@ export class ProductCategoryController {
       const tenantId = this.resolveTenantId(req);
       const id = String(req.params.id);
       const result = await this.service.update(tenantId, id, req.body);
-      sendResponse(res, 200, true, 'Product category updated successfully', result);
+      sendResponse(res, 200, true, 'Package updated successfully', result);
     } catch (error) {
       next(error);
     }
@@ -66,13 +66,7 @@ export class ProductCategoryController {
       const id = String(req.params.id);
       const { isActive } = req.body;
       const result = await this.service.updateStatus(tenantId, id, isActive);
-      sendResponse(
-        res,
-        200,
-        true,
-        `Product category marked as ${isActive ? 'active' : 'inactive'}`,
-        result
-      );
+      sendResponse(res, 200, true, `Package marked as ${isActive ? 'active' : 'inactive'}`, result);
     } catch (error) {
       next(error);
     }
@@ -83,11 +77,11 @@ export class ProductCategoryController {
       const tenantId = this.resolveTenantId(req);
       const id = String(req.params.id);
       await this.service.delete(tenantId, id);
-      sendResponse(res, 200, true, 'Product category deleted successfully');
+      sendResponse(res, 200, true, 'Package deleted successfully');
     } catch (error) {
       next(error);
     }
   };
 }
 
-export const productCategoryController = new ProductCategoryController();
+export const packageController = new PackageController();

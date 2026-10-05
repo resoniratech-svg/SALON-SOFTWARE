@@ -211,6 +211,23 @@ export class CashierRepository {
     });
   }
 
+  async getTenantCashierPermissions(tenantId: string) {
+    return prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { id: true, name: true, enabledModules: true, cashierPermissions: true },
+    });
+  }
+
+  async updateTenantCashierPermissions(tenantId: string, permissions: any) {
+    return prisma.tenant.update({
+      where: { id: tenantId },
+      data: {
+        cashierPermissions: permissions,
+      },
+      select: { id: true, name: true, enabledModules: true, cashierPermissions: true },
+    });
+  }
+
   async createAuditLog(data: {
     actorId: string;
     actorType: string;

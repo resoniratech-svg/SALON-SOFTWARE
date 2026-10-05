@@ -11,6 +11,8 @@ const router = Router();
 router.post('/login', validateRequest(loginSchema), authController.login);
 router.post('/forgot-password', validateRequest(forgotPasswordSchema), authController.forgotPassword);
 router.post('/reset-password', validateRequest(resetPasswordSchema), authController.resetPassword);
+router.get('/tenant/:id', authController.getTenantPublicProfile);
+router.get('/tenant-profile', authController.getTenantPublicProfile);
 
 // Authenticated user routes
 router.get('/me', authenticateJwt, authController.getCurrentUser);

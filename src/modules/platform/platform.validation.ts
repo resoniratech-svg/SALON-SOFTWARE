@@ -9,12 +9,15 @@ export const createCompanySchema = z.object({
     .max(50)
     .regex(/^[a-zA-Z0-9-_]+$/, 'Company code must be alphanumeric with hyphens/underscores')
     .transform((val) => val.toLowerCase()),
-  plan: z.enum(['TRIAL', 'STARTER', 'PRO', 'ENTERPRISE']).optional().default('TRIAL'),
+  plan: z.string().trim().min(1).max(100).optional().default('TRIAL'),
   subscriptionExpiresAt: z.string().datetime().optional().nullable(),
   trialEndsAt: z.string().datetime().optional().nullable(),
   contactEmail: z.string().email('Invalid email address').optional().nullable(),
   contactPhone: z.string().trim().max(30).optional().nullable(),
   address: z.string().trim().max(500).optional().nullable(),
+  city: z.string().trim().max(200).optional().nullable(),
+  primaryBranchName: z.string().trim().max(200).optional().nullable(),
+  logoUrl: z.string().optional().nullable(),
   cashierLimit: z.number().int().min(0, 'Cashier limit must be non-negative').optional(),
   enabledModules: z.array(z.string()).optional().default(['SERVICES', 'PRODUCTS', 'DISPOSABLES', 'STAFF']),
   admin: z
@@ -43,10 +46,16 @@ export const updateCompanySchema = z.object({
     .regex(/^[a-zA-Z0-9-_]+$/, 'Company code must be alphanumeric with hyphens/underscores')
     .transform((val) => val.toLowerCase())
     .optional(),
+  ownerName: z.string().trim().min(2).max(100).optional(),
   contactEmail: z.string().email().optional().nullable(),
   contactPhone: z.string().trim().max(30).optional().nullable(),
   address: z.string().trim().max(500).optional().nullable(),
+  city: z.string().trim().max(200).optional().nullable(),
+  primaryBranchName: z.string().trim().max(200).optional().nullable(),
+  logoUrl: z.string().optional().nullable(),
   cashierLimit: z.number().int().min(0, 'Cashier limit must be non-negative').optional(),
+  enabledModules: z.array(z.string()).optional(),
+  adminPassword: z.string().min(6, 'Admin password must be at least 6 characters').optional(),
 });
 
 export const updateCompanyStatusSchema = z.object({
@@ -56,11 +65,11 @@ export const updateCompanyStatusSchema = z.object({
 
 export const renewSubscriptionSchema = z.object({
   durationDays: z.number().int().min(1, 'Renewal duration must be at least 1 day').max(3650, 'Renewal duration cannot exceed 10 years'),
-  plan: z.enum(['TRIAL', 'STARTER', 'PRO', 'ENTERPRISE']).optional(),
+  plan: z.string().trim().min(1).max(100).optional(),
 });
 
 export const updateSubscriptionSchema = z.object({
-  plan: z.enum(['TRIAL', 'STARTER', 'PRO', 'ENTERPRISE']).optional(),
+  plan: z.string().trim().min(1).max(100).optional(),
   subscriptionStatus: z.enum(['TRIAL', 'ACTIVE', 'EXPIRED', 'SUSPENDED']).optional(),
   subscriptionExpiresAt: z.string().datetime().optional().nullable(),
   trialEndsAt: z.string().datetime().optional().nullable(),
@@ -119,4 +128,26 @@ export const auditLogQuerySchema = z.object({
   action: z.string().trim().optional(),
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
+});
+
+export const createPlanSchema = z.object({
+  name: z.string().trim().min(2, 'Plan name must be at least 2 characters').max(100),
+  price: z.coerce.number().min(0, 'Price must be non-negative'),
+  durationDays: z.coerce.number().int().min(1, 'Duration must be at least 1 day'),
+  billingCycle: z.string().trim().optional(),
+  badgeTag: z.string().trim().optional().nullable(),
+  cashierLimit: z.coerce.number().int().min(1).default(2),
+  features: z.array(z.string()).optional().default([]),
+  isActive: z.boolean().optional().default(true),
+});
+
+export const updatePlanSchema = z.object({
+  name: z.string().trim().min(2).max(100).optional(),
+  price: z.coerce.number().min(0).optional(),
+  durationDays: z.coerce.number().int().min(1).optional(),
+  billingCycle: z.string().trim().optional(),
+  badgeTag: z.string().trim().optional().nullable(),
+  cashierLimit: z.coerce.number().int().min(1).optional(),
+  features: z.array(z.string()).optional(),
+  isActive: z.boolean().optional(),
 });

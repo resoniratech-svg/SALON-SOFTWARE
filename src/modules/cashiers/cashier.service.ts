@@ -36,14 +36,23 @@ export class CashierService {
     }
 
     // 2. Tier 1 Company Module Validation:
-    // Admin cannot assign a module to Cashier if it is not enabled for the company (Requirement 3)
+    // Admin cannot assign a module to Cashier if it is not enabled for the company
     const companyModules = Array.isArray(tenant.enabledModules)
       ? (tenant.enabledModules as string[])
       : ['SERVICES', 'PRODUCTS', 'DISPOSABLES', 'STAFF'];
 
+    const moduleCompatibilityMap: Record<string, string[]> = {
+      'SERVICES': ['SERVICES', 'Quick Sale POS', 'POS', 'All Modules'],
+      'PRODUCTS': ['PRODUCTS', 'Quick Sale POS', 'POS', 'Salon Inventory & POs', 'All Modules'],
+      'DISPOSABLES': ['DISPOSABLES', 'Quick Sale POS', 'POS', 'Salon Disposables & Wastage', 'Salon Inventory & POs', 'All Modules'],
+      'STAFF': ['STAFF', 'Staff Payroll & Commissions', 'All Modules'],
+    };
+
     const requestedModules = input.enabledModules || ['SERVICES', 'PRODUCTS', 'DISPOSABLES'];
     for (const mod of requestedModules) {
-      if (!companyModules.includes(mod)) {
+      const allowedIfAny = moduleCompatibilityMap[mod] || [mod];
+      const isAllowed = companyModules.some(cm => allowedIfAny.includes(cm) || cm === mod);
+      if (!isAllowed) {
         throw new BadRequestError(
           `Cannot assign module '${mod}' because it is not enabled for the company.`
         );
@@ -126,9 +135,17 @@ export class CashierService {
       }
     }
 
+    let passwordHash: string | undefined;
+    if (input.password && input.password.trim()) {
+      passwordHash = await bcrypt.hash(input.password.trim(), 10);
+    }
+
     const updated = await this.repo.updateCashier(id, tenantId, {
       ...(input.email !== undefined ? { email: input.email } : {}),
       ...(input.username !== undefined ? { username: input.username } : {}),
+      ...(input.phone !== undefined ? { phone: input.phone } : {}),
+      ...(input.status !== undefined ? { status: input.status } : {}),
+      ...(passwordHash ? { passwordHash } : {}),
     });
 
     await this.repo.createAuditLog({
@@ -139,7 +156,12 @@ export class CashierService {
       action: 'CASHIER_UPDATED',
       entityType: 'USER',
       entityId: id,
-      metadata: input,
+      metadata: {
+        username: input.username,
+        email: input.email,
+        phone: input.phone,
+        passwordUpdated: !!passwordHash,
+      },
       ipAddress,
     });
 
@@ -204,8 +226,17 @@ export class CashierService {
       ? (tenant.enabledModules as string[])
       : ['SERVICES', 'PRODUCTS', 'DISPOSABLES', 'STAFF'];
 
+    const moduleCompatibilityMap: Record<string, string[]> = {
+      'SERVICES': ['SERVICES', 'Quick Sale POS', 'POS', 'All Modules'],
+      'PRODUCTS': ['PRODUCTS', 'Quick Sale POS', 'POS', 'Salon Inventory & POs', 'All Modules'],
+      'DISPOSABLES': ['DISPOSABLES', 'Quick Sale POS', 'POS', 'Salon Disposables & Wastage', 'Salon Inventory & POs', 'All Modules'],
+      'STAFF': ['STAFF', 'Staff Payroll & Commissions', 'All Modules'],
+    };
+
     for (const mod of enabledModules) {
-      if (!companyModules.includes(mod)) {
+      const allowedIfAny = moduleCompatibilityMap[mod] || [mod];
+      const isAllowed = companyModules.some(cm => allowedIfAny.includes(cm) || cm === mod);
+      if (!isAllowed) {
         throw new BadRequestError(
           `Cannot assign module '${mod}' because it is not enabled for the company.`
         );
@@ -293,6 +324,52 @@ export class CashierService {
     });
 
     return { message: 'Cashier deleted successfully' };
+  }
+
+  async getCompanyPermissions(tenantId: string) {
+    const tenant = await this.repo.getTenantCashierPermissions(tenantId);
+    if (!tenant) {
+      throw new NotFoundError(`Tenant organization with ID '${tenantId}' not found`);
+    }
+    return {
+      tenantId: tenant.id,
+      companyName: tenant.name,
+      enabledModules: tenant.enabledModules,
+      permissions: tenant.cashierPermissions || {},
+    };
+  }
+
+  async updateCompanyPermissions(
+    tenantId: string,
+    permissions: any,
+    actor: AuthenticatedUser,
+    ipAddress?: string
+  ) {
+    const tenant = await this.repo.findTenantById(tenantId);
+    if (!tenant) {
+      throw new NotFoundError(`Tenant organization with ID '${tenantId}' not found`);
+    }
+
+    const updated = await this.repo.updateTenantCashierPermissions(tenantId, permissions);
+
+    await this.repo.createAuditLog({
+      actorId: actor.id,
+      actorType: actor.role.name,
+      actorName: actor.username,
+      tenantId,
+      action: 'CASHIER_PERMISSIONS_UPDATED',
+      entityType: 'TENANT',
+      entityId: tenantId,
+      metadata: { permissions },
+      ipAddress,
+    });
+
+    return {
+      tenantId: updated.id,
+      companyName: updated.name,
+      enabledModules: updated.enabledModules,
+      permissions: updated.cashierPermissions || {},
+    };
   }
 }
 

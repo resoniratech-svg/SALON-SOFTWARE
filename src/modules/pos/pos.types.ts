@@ -69,6 +69,7 @@ export interface CreatePosOrderInput {
   redeemLoyaltyPoints?: number;
   tipAmount?: number;
   paymentMethod?: string;
+  paymentStatus?: 'PAID' | 'PARTIAL' | 'UNPAID';
   payments?: PosPaymentInput[];
   notes?: string | null;
   instruction?: string | null;
@@ -76,6 +77,8 @@ export interface CreatePosOrderInput {
 
 export interface UpdatePosOrderInput {
   guestId?: string;
+  staffId?: string;
+  orderDate?: string | Date;
   items?: CreateOrderItemInput[];
   status?: PosOrderStatus;
   discountType?: PosDiscountType;
@@ -86,6 +89,7 @@ export interface UpdatePosOrderInput {
   referralCode?: string | null;
   tipAmount?: number;
   paymentMethod?: string;
+  paymentStatus?: string;
   payments?: PosPaymentInput[];
   notes?: string | null;
   instruction?: string | null;

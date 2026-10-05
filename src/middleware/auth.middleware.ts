@@ -127,16 +127,17 @@ export const authenticateJwt = async (
 
     // CONTEXT 1: SUPERADMIN PLATFORM CONTEXT
     if (roleName === 'SUPERADMIN') {
+      const headerTenantId = (req.headers['x-tenant-id'] || req.headers['tenant-id'] || req.query.tenantId) as string | undefined;
       const authenticatedUser: AuthenticatedUser = {
         id: user.id,
-        tenantId: null,
+        tenantId: headerTenantId || null,
         username: user.username,
         email: user.email,
         status: user.status,
         isSuperAdmin: true,
         mustChangePassword: user.mustChangePassword,
         impersonating: false,
-        effectiveTenantId: null,
+        effectiveTenantId: headerTenantId || null,
         role: {
           id: user.role.id,
           name: 'SUPERADMIN',
@@ -147,8 +148,8 @@ export const authenticateJwt = async (
       };
 
       req.user = authenticatedUser;
-      req.tenantId = undefined;
-      req.effectiveTenantId = null;
+      req.tenantId = headerTenantId;
+      req.effectiveTenantId = headerTenantId || null;
       return next();
     }
 

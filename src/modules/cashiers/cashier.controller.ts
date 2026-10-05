@@ -9,7 +9,11 @@ export class CashierController {
   private resolveTenantId(req: Request): string {
     let tenantId = req.effectiveTenantId || req.tenantId || req.user?.tenantId;
     if (!tenantId && req.user?.isSuperAdmin) {
-      tenantId = (req.query?.tenantId as string) || ((req as any).validatedQuery?.tenantId as string);
+      tenantId =
+        (req.query?.tenantId as string) ||
+        ((req as any).validatedQuery?.tenantId as string) ||
+        (req.headers['x-tenant-id'] as string) ||
+        (req.body?.tenantId as string);
     }
     if (!tenantId) {
       throw new ForbiddenError(
@@ -106,6 +110,27 @@ export class CashierController {
       const id = String(req.params.id);
       const result = await this.service.deleteCashier(id, tenantId, req.user!, req.ip);
       sendResponse(res, 200, true, result.message);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getCompanyPermissions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = this.resolveTenantId(req);
+      const result = await this.service.getCompanyPermissions(tenantId);
+      sendResponse(res, 200, true, 'Company cashier permissions retrieved successfully', result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateCompanyPermissions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = this.resolveTenantId(req);
+      const { permissions } = req.body;
+      const result = await this.service.updateCompanyPermissions(tenantId, permissions, req.user!, req.ip);
+      sendResponse(res, 200, true, 'Company cashier permissions updated successfully in database', result);
     } catch (error) {
       next(error);
     }

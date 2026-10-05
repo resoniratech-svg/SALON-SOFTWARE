@@ -12,6 +12,8 @@ export interface UpdateCashierInput {
   email?: string | null;
   phone?: string | null;
   username?: string;
+  password?: string;
+  status?: UserStatus;
 }
 
 export interface UpdateCashierModulesInput {

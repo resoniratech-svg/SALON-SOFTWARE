@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService, AuthService } from './auth.service.js';
 import { sendResponse } from '../../utils/api-response.js';
+import { prisma } from '../../config/database.js';
 
 export class AuthController {
   constructor(private service: AuthService = authService) {}
@@ -74,6 +75,44 @@ export class AuthController {
       }
       const result = await this.service.requestCashierPasswordReset(req.user.id);
       sendResponse(res, 200, true, result.message);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getTenantPublicProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tenantId = (req.params.id || req.query.id || req.headers['x-tenant-id']) as string;
+      const tenant = await prisma.tenant.findFirst({
+        where: tenantId
+          ? {
+              OR: [
+                { id: tenantId },
+                { name: { equals: tenantId, mode: 'insensitive' } },
+                { code: { equals: tenantId, mode: 'insensitive' } },
+              ],
+            }
+          : { isActive: true },
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          logoUrl: true,
+          city: true,
+          primaryBranchName: true,
+          address: true,
+          contactEmail: true,
+          contactPhone: true,
+          isActive: true,
+        },
+      });
+
+      if (!tenant) {
+        res.status(404).json({ success: false, message: 'Company not found' });
+        return;
+      }
+
+      sendResponse(res, 200, true, 'Company profile retrieved successfully', tenant);
     } catch (error) {
       next(error);
     }

@@ -21,18 +21,18 @@ const documentItemSchema = z.object({
 });
 
 const joiningDetailsSchema = z.object({
-  joiningDate: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
-  designationId: z.string().uuid('Invalid designation ID'),
-  employeeNumber: z.string().trim().min(1, 'Employee number is required'),
-  reportingToId: z.string().uuid('Invalid reporting-to staff ID').nullable().optional(),
-  workingHours: z.string().trim().min(1, 'Working hours is required'),
+  joiningDate: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
+  designationId: z.string().trim().min(1, 'Designation is required'),
+  employeeNumber: z.string().trim().optional(),
+  reportingToId: z.string().trim().nullable().optional(),
+  workingHours: z.string().trim().optional(),
 });
 
 const bankDetailsSchema = z.object({
-  bankName: z.string().trim().min(1, 'Bank name is required'),
-  branch: z.string().trim().min(1, 'Branch name is required'),
-  accountNumber: z.string().trim().min(1, 'Account number is required'),
-  ifsc: z.string().trim().min(1, 'IFSC code is required'),
+  bankName: z.string().trim().optional(),
+  branch: z.string().trim().optional(),
+  accountNumber: z.string().trim().optional(),
+  ifsc: z.string().trim().optional(),
 });
 
 const appointmentSettingsSchema = z.object({
@@ -50,7 +50,7 @@ export const createStaffSchema = z.object({
   personalDetails: personalDetailsSchema,
   documents: z.array(documentItemSchema).optional().default([]),
   joiningDetails: joiningDetailsSchema,
-  bankDetails: bankDetailsSchema,
+  bankDetails: bankDetailsSchema.optional().default({}),
   appointmentSettings: appointmentSettingsSchema.optional().default({
     enableAppointments: true,
     showAllAppointments: false,
@@ -79,4 +79,5 @@ export const staffQuerySchema = z.object({
   page: z.string().regex(/^\d+$/).transform(Number).optional(),
   limit: z.string().regex(/^\d+$/).transform(Number).optional(),
   export: z.enum(['csv', 'excel']).optional(),
+  tenantId: z.string().optional(),
 });

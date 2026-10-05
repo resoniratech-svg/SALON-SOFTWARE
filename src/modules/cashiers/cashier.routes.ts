@@ -13,8 +13,23 @@ import {
 
 const router = Router();
 
-// All Cashier management endpoints require authentication and ADMIN role (or SUPERADMIN in company impersonation)
+// All Cashier management endpoints require authentication
 router.use(authenticateJwt);
+
+// Company-level Cashier permissions
+router.get(
+  '/permissions',
+  requireRoles('ADMIN', 'SUPERADMIN', 'CASHIER'),
+  cashierController.getCompanyPermissions
+);
+
+router.put(
+  '/permissions',
+  requireRoles('ADMIN', 'SUPERADMIN'),
+  cashierController.updateCompanyPermissions
+);
+
+// All other Cashier management endpoints require ADMIN or SUPERADMIN
 router.use(requireRoles('ADMIN', 'SUPERADMIN'));
 
 router.post(

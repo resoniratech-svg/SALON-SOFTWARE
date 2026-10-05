@@ -286,19 +286,22 @@ export class PosRepository {
           // 4. Record Inventory Stock Movements for products sold in COMPLETED orders
           if (orderData.status === 'COMPLETED') {
             for (const item of items) {
-              if (item.itemType === 'PRODUCT' && item.productId) {
-                await tx.stockTransaction.create({
-                  data: {
-                    tenantId,
-                    productId: item.productId,
-                    type: 'OUTWARD',
-                    quantity: new Prisma.Decimal(item.quantity),
-                    unitPrice: item.unitPrice,
-                    totalAmount: item.total,
-                    notes: `POS Sale: ${currentOrderNumber}`,
-                    transactionDate: orderData.orderDate,
-                  },
-                });
+              if (item.itemType === 'PRODUCT' && item.productId && /^[0-9a-fA-F-]{36}$/.test(item.productId)) {
+                const prodExists = await tx.product.findUnique({ where: { id: item.productId } });
+                if (prodExists) {
+                  await tx.stockTransaction.create({
+                    data: {
+                      tenantId,
+                      productId: item.productId,
+                      type: 'OUTWARD',
+                      quantity: new Prisma.Decimal(item.quantity),
+                      unitPrice: item.unitPrice,
+                      totalAmount: item.total,
+                      notes: `POS Sale: ${currentOrderNumber}`,
+                      transactionDate: orderData.orderDate,
+                    },
+                  });
+                }
               }
             }
           }
@@ -472,6 +475,8 @@ export class PosRepository {
       totalAmount?: Prisma.Decimal;
       paymentMethod?: string;
       paymentStatus?: string;
+      orderDate?: Date;
+      staffId?: string | null;
       notes?: string | null;
       instruction?: string | null;
     }>,
@@ -540,6 +545,12 @@ export class PosRepository {
             notes: item.notes,
           })),
         });
+      } else if (orderData.staffId) {
+        // If staff reassigned without re-calculating whole items
+        await tx.posOrderItem.updateMany({
+          where: { orderId: id, tenantId },
+          data: { staffId: orderData.staffId },
+        });
       }
 
       // If payments replaced
@@ -557,10 +568,11 @@ export class PosRepository {
         });
       }
 
-      // Update order header
+      // Update order header (strip staffId which is for items)
+      const { staffId: _staffIdToIgnore, ...fieldsToUpdate } = orderData;
       const updated = await tx.posOrder.update({
         where: { id },
-        data: orderData,
+        data: fieldsToUpdate,
         include: this.defaultIncludes,
       });
 

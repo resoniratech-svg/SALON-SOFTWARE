@@ -47,6 +47,7 @@ export const CreateAppointmentSchema = z.object({
 
 export const UpdateAppointmentSchema = z.object({
   guestId: z.string().uuid('Invalid guest UUID').optional(),
+  staffId: z.string().uuid('Invalid staff UUID').optional().nullable(),
   appointmentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'appointmentDate must be YYYY-MM-DD').optional(),
   status: AppointmentStatusEnum.optional(),
   bookingSource: BookingSourceEnum.optional(),

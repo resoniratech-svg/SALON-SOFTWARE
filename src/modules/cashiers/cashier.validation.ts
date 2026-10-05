@@ -12,6 +12,8 @@ export const updateCashierSchema = z.object({
   username: z.string().trim().min(3, 'Username must be at least 3 characters').max(50).optional(),
   email: z.string().email('Invalid email address').optional().nullable(),
   phone: z.string().trim().optional().nullable(),
+  password: z.string().min(8, 'Password must be at least 8 characters').optional(),
+  status: z.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED']).optional(),
 });
 
 export const updateCashierStatusSchema = z.object({

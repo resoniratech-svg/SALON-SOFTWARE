@@ -30,15 +30,17 @@ export class PosService {
     let subtotal = 0;
     let itemDiscountTotal = 0;
 
-    // Collect IDs for bulk lookup
+    const isUuid = (str?: string | null) => typeof str === 'string' && /^[0-9a-fA-F-]{36}$/.test(str);
+
+    // Collect IDs for bulk lookup (only valid UUIDs for Prisma)
     const serviceIds = input.items
-      .filter((i) => i.itemType === 'SERVICE' && i.serviceId)
+      .filter((i) => i.itemType === 'SERVICE' && isUuid(i.serviceId))
       .map((i) => i.serviceId as string);
     const productIds = input.items
-      .filter((i) => i.itemType === 'PRODUCT' && i.productId)
+      .filter((i) => i.itemType === 'PRODUCT' && isUuid(i.productId))
       .map((i) => i.productId as string);
     const staffIds = input.items
-      .filter((i) => i.staffId)
+      .filter((i) => isUuid(i.staffId))
       .map((i) => i.staffId as string);
 
     // Fetch services, products, and staff belonging strictly to this tenant
@@ -91,51 +93,59 @@ export class PosService {
       let staffName: string | null = null;
 
       if (item.itemType === 'SERVICE') {
-        if (!item.staffId) {
-          throw new BadRequestError('Select Staff: Staff is required for service items');
-        }
-        if (!staffMap.has(item.staffId)) {
-          // Verify if staff exists in this tenant
-          const staffCheck = await prisma.staff.findFirst({
-            where: { id: item.staffId, tenantId },
-          });
-          if (!staffCheck) {
-            throw new BadRequestError(`Staff with ID ${item.staffId} not found in this salon`);
+        if (item.staffId) {
+          if (!staffMap.has(item.staffId)) {
+            const staffCheck = await prisma.staff.findFirst({
+              where: {
+                tenantId,
+                ...(isUuid(item.staffId) ? { id: item.staffId } : { name: { equals: item.staffId.trim(), mode: 'insensitive' } }),
+              },
+            });
+            if (staffCheck) {
+              item.staffId = staffCheck.id;
+              staffName = staffCheck.name;
+              staffMap.set(staffCheck.id, staffCheck.name);
+            }
+          } else {
+            staffName = staffMap.get(item.staffId) || null;
           }
-          staffName = staffCheck.name;
-          staffMap.set(staffCheck.id, staffCheck.name);
-        } else {
-          staffName = staffMap.get(item.staffId) || null;
         }
 
-        if (item.serviceId) {
+        if (item.serviceId && isUuid(item.serviceId)) {
           const service = serviceMap.get(item.serviceId);
-          if (!service) {
-            throw new BadRequestError(`Service with ID ${item.serviceId} not found in this salon`);
+          if (service) {
+            itemName = service.name;
+            itemCategory = service.category?.name || null;
+            const servicePrice = Number(service.salePrice) > 0 ? Number(service.salePrice) : Number(service.price);
+            unitPrice = item.unitPrice !== undefined ? Number(item.unitPrice) : servicePrice;
+          } else if (item.unitPrice !== undefined) {
+            unitPrice = Number(item.unitPrice);
           }
-          itemName = service.name;
-          itemCategory = service.category?.name || null;
-          const servicePrice = Number(service.salePrice) > 0 ? Number(service.salePrice) : Number(service.price);
-          unitPrice = item.unitPrice !== undefined ? Number(item.unitPrice) : servicePrice;
         } else if (item.unitPrice !== undefined) {
           unitPrice = Number(item.unitPrice);
         }
       } else if (item.itemType === 'PRODUCT') {
-        if (item.productId) {
+        if (item.productId && isUuid(item.productId)) {
           const product = productMap.get(item.productId);
-          if (!product) {
-            throw new BadRequestError(`Product with ID ${item.productId} not found in this salon`);
+          if (product) {
+            itemName = product.name;
+            itemCategory = product.category?.name || null;
+            const prodPrice = Number(product.salePrice) > 0 ? Number(product.salePrice) : Number(product.price);
+            unitPrice = item.unitPrice !== undefined ? Number(item.unitPrice) : prodPrice;
+          } else if (item.unitPrice !== undefined) {
+            unitPrice = Number(item.unitPrice);
           }
-          itemName = product.name;
-          itemCategory = product.category?.name || null;
-          const prodPrice = Number(product.salePrice) > 0 ? Number(product.salePrice) : Number(product.price);
-          unitPrice = item.unitPrice !== undefined ? Number(item.unitPrice) : prodPrice;
         } else if (item.unitPrice !== undefined) {
           unitPrice = Number(item.unitPrice);
         }
 
         if (item.staffId && staffMap.has(item.staffId)) {
           staffName = staffMap.get(item.staffId) || null;
+        }
+      } else {
+        // DISPOSABLE, PACKAGE, MEMBERSHIP, OTHER
+        if (item.unitPrice !== undefined) {
+          unitPrice = Number(item.unitPrice);
         }
       }
 
@@ -478,35 +488,41 @@ export class PosService {
     // 3. Generate Order Number
     const orderNumber = await this.repository.getNextOrderNumber(tenantId);
 
+    const isPayAtSalon = input.paymentMethod === 'PAY AT SALON' || input.paymentStatus === 'UNPAID';
+    const finalPaymentStatus = isPayAtSalon ? 'UNPAID' : (input.paymentStatus || 'PAID');
+
     // 4. Format payments
     const payments = [];
-    if (input.payments && input.payments.length > 0) {
-      for (const p of input.payments) {
+    if (!isPayAtSalon) {
+      if (input.payments && input.payments.length > 0) {
+        for (const p of input.payments) {
+          payments.push({
+            method: p.method,
+            amount: new Prisma.Decimal(p.amount),
+            referenceNumber: p.referenceNumber || null,
+            status: 'SUCCESS',
+          });
+        }
+      } else {
         payments.push({
-          method: p.method,
-          amount: new Prisma.Decimal(p.amount),
-          referenceNumber: p.referenceNumber || null,
+          method: input.paymentMethod || 'CASH',
+          amount: new Prisma.Decimal(calculation.totalAmount),
+          referenceNumber: null,
           status: 'SUCCESS',
         });
       }
-    } else {
-      payments.push({
-        method: input.paymentMethod || 'CASH',
-        amount: new Prisma.Decimal(calculation.totalAmount),
-        referenceNumber: null,
-        status: 'SUCCESS',
-      });
     }
 
     // Determine cashier ID
     const cashierId = input.cashierId || (currentUser?.id ? currentUser.id : null);
 
+    const isUuid = (str?: string | null) => typeof str === 'string' && /^[0-9a-fA-F-]{36}$/.test(str);
     // 5. Prepare Order Items with mapped decimal fields
     const orderItems = calculation.itemsCalculated.map((item) => ({
       itemType: item.itemType,
-      serviceId: item.serviceId,
-      productId: item.productId,
-      staffId: item.staffId,
+      serviceId: isUuid(item.serviceId) ? item.serviceId : null,
+      productId: isUuid(item.productId) ? item.productId : null,
+      staffId: isUuid(item.staffId) ? item.staffId : null,
       itemName: item.itemName,
       itemCategory: item.itemCategory,
       quantity: item.quantity,
@@ -547,7 +563,7 @@ export class PosService {
         tipAmount: new Prisma.Decimal(calculation.tipAmount),
         totalAmount: new Prisma.Decimal(calculation.totalAmount),
         paymentMethod: input.paymentMethod || (input.payments && input.payments.length > 1 ? 'SPLIT' : 'CASH'),
-        paymentStatus: 'PAID',
+        paymentStatus: finalPaymentStatus,
         notes: input.notes || null,
         instruction: input.instruction || null,
       },
@@ -653,13 +669,59 @@ export class PosService {
   }
 
   async delete(tenantId: string, id: string) {
-    const order = await this.repository.findById(tenantId, id);
-    if (!order) {
-      throw new NotFoundError('Order not found');
+    const isUuid = typeof id === 'string' && /^[0-9a-fA-F-]{36}$/.test(id);
+    const cleanId = typeof id === 'string' ? id.replace(/^#/, '').trim() : '';
+
+    let order = isUuid ? await this.repository.findById(tenantId, id) : null;
+    if (!order && cleanId) {
+      order = await this.repository.findByOrderNumber(tenantId, cleanId);
+    }
+    if (!order && !isUuid) {
+      order = await this.repository.findById(tenantId, id);
     }
 
-    await this.repository.delete(tenantId, id);
-    return { success: true, message: 'Order voided/deleted successfully' };
+    if (order) {
+      // 1. Delete linked appointments pointing to this POS order
+      await prisma.appointment.deleteMany({
+        where: {
+          tenantId,
+          OR: [
+            { posOrderId: order.id },
+            { appointmentNumber: order.orderNumber },
+            { appointmentNumber: `#${order.orderNumber}` },
+          ],
+        },
+      });
+
+      // 2. Cascade delete order items and payments then delete order
+      await this.repository.delete(tenantId, order.id);
+      return { success: true, message: 'Order voided/deleted successfully' };
+    }
+
+    // If order not found, check if an appointment exists with this id/number and delete it
+    const appt = await prisma.appointment.findFirst({
+      where: {
+        tenantId,
+        OR: [
+          ...(isUuid ? [{ id }] : []),
+          { appointmentNumber: id },
+          { appointmentNumber: cleanId },
+          { appointmentNumber: `#${cleanId}` },
+        ],
+      },
+    });
+
+    if (appt) {
+      if (appt.posOrderId) {
+        await this.repository.delete(tenantId, appt.posOrderId).catch(() => {});
+      }
+      await prisma.appointment.delete({
+        where: { id: appt.id },
+      });
+      return { success: true, message: 'Appointment deleted successfully' };
+    }
+
+    throw new NotFoundError('Order not found');
   }
 
   async update(tenantId: string, id: string, input: UpdatePosOrderInput, currentUser: any) {
@@ -703,30 +765,34 @@ export class PosService {
         notes: null,
       }));
 
-      if (input.payments && input.payments.length > 0) {
-        payments = input.payments.map((p) => ({
-          method: p.method,
-          amount: new Prisma.Decimal(p.amount),
-          referenceNumber: p.referenceNumber || null,
+    }
+
+    if (input.payments && input.payments.length > 0) {
+      payments = input.payments.map((p) => ({
+        method: p.method,
+        amount: new Prisma.Decimal(p.amount),
+        referenceNumber: p.referenceNumber || null,
+        status: 'SUCCESS',
+      }));
+    } else if (calculation) {
+      payments = [
+        {
+          method: input.paymentMethod || existing.paymentMethod || 'CASH',
+          amount: new Prisma.Decimal(calculation.totalAmount),
+          referenceNumber: null,
           status: 'SUCCESS',
-        }));
-      } else {
-        payments = [
-          {
-            method: input.paymentMethod || existing.paymentMethod || 'CASH',
-            amount: new Prisma.Decimal(calculation.totalAmount),
-            referenceNumber: null,
-            status: 'SUCCESS',
-          },
-        ];
-      }
+        },
+      ];
     }
 
     const orderData: any = {
       ...(input.status ? { status: input.status } : {}),
+      ...(input.orderDate ? { orderDate: new Date(input.orderDate) } : {}),
+      ...(input.staffId ? { staffId: input.staffId } : {}),
       ...(input.notes !== undefined ? { notes: input.notes } : {}),
       ...(input.instruction !== undefined ? { instruction: input.instruction } : {}),
       ...(input.paymentMethod ? { paymentMethod: input.paymentMethod } : {}),
+      ...(input.paymentStatus ? { paymentStatus: input.paymentStatus } : (payments && payments.length > 0 ? { paymentStatus: 'PAID' } : {})),
     };
 
     if (calculation) {

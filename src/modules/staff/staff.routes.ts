@@ -28,5 +28,6 @@ router.post('/', requirePermissions('STAFF:CREATE'), validateRequest(createStaff
 router.get('/:id', requirePermissions('STAFF:READ'), staffController.getStaffProfile);
 router.put('/:id', requirePermissions('STAFF:UPDATE'), validateRequest(updateStaffSchema), staffController.updateStaff);
 router.patch('/:id/status', requirePermissions('STAFF:STATUS'), validateRequest(updateStaffStatusSchema), staffController.updateStatus);
+router.delete('/:id', requirePermissions('STAFF:DELETE'), staffController.deleteStaff);
 
 export default router;

@@ -5,9 +5,21 @@ import { sendResponse } from '../../utils/api-response.js';
 export class ServiceController {
   constructor(private service: ServiceService = serviceService) {}
 
+  private resolveTenantId(req: Request): string {
+    return (
+      req.effectiveTenantId ||
+      req.tenantId ||
+      req.user?.tenantId ||
+      (req.headers['x-tenant-id'] as string) ||
+      (req.query?.tenantId as string) ||
+      ((req as any).validatedQuery?.tenantId as string) ||
+      req.body?.tenantId
+    ) as string;
+  }
+
   create = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = (req.tenantId || req.user?.tenantId) as string;
+      const tenantId = this.resolveTenantId(req);
       const result = await this.service.create(tenantId, req.body);
       sendResponse(res, 201, true, 'Service created successfully', result);
     } catch (error) {
@@ -17,7 +29,7 @@ export class ServiceController {
 
   list = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = (req.tenantId || req.user?.tenantId) as string;
+      const tenantId = this.resolveTenantId(req);
       const query = (req as any).validatedQuery || req.query;
       const result = await this.service.list(tenantId, query);
       sendResponse(res, 200, true, 'Services retrieved successfully', result);
@@ -28,7 +40,7 @@ export class ServiceController {
 
   getById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = (req.tenantId || req.user?.tenantId) as string;
+      const tenantId = this.resolveTenantId(req);
       const id = String(req.params.id);
       const result = await this.service.getById(tenantId, id);
       sendResponse(res, 200, true, 'Service retrieved successfully', result);
@@ -39,7 +51,7 @@ export class ServiceController {
 
   update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = (req.tenantId || req.user?.tenantId) as string;
+      const tenantId = this.resolveTenantId(req);
       const id = String(req.params.id);
       const result = await this.service.update(tenantId, id, req.body);
       sendResponse(res, 200, true, 'Service updated successfully', result);
@@ -50,7 +62,7 @@ export class ServiceController {
 
   updateStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = (req.tenantId || req.user?.tenantId) as string;
+      const tenantId = this.resolveTenantId(req);
       const id = String(req.params.id);
       const { isActive } = req.body;
       const result = await this.service.updateStatus(tenantId, id, isActive);
@@ -68,7 +80,7 @@ export class ServiceController {
 
   delete = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const tenantId = (req.tenantId || req.user?.tenantId) as string;
+      const tenantId = this.resolveTenantId(req);
       const id = String(req.params.id);
       await this.service.delete(tenantId, id);
       sendResponse(res, 200, true, 'Service deleted successfully');

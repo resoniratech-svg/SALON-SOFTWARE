@@ -16,10 +16,17 @@ export const orderItemSchema = z.preprocess(
   },
   z
     .object({
-      itemType: z.enum(['SERVICE', 'PRODUCT']).default('SERVICE'),
-      serviceId: z.string().uuid('Invalid service ID').optional().nullable(),
-      productId: z.string().uuid('Invalid product ID').optional().nullable(),
-      staffId: z.string().uuid('Invalid staff ID').optional().nullable(),
+      itemType: z.preprocess((val) => {
+        if (typeof val === 'string') {
+          const upper = val.toUpperCase().trim();
+          if (upper === 'PACKAGE_REDEMPTION' || upper === 'REDEMPTION') return 'SERVICE';
+          return upper;
+        }
+        return val;
+      }, z.enum(['SERVICE', 'PRODUCT', 'DISPOSABLE', 'PACKAGE', 'MEMBERSHIP', 'OTHER'])).default('SERVICE'),
+      serviceId: z.string().optional().nullable(),
+      productId: z.string().optional().nullable(),
+      staffId: z.string().optional().nullable(),
       itemName: z.string().trim().min(1, 'Item name cannot be empty').optional(),
       itemCategory: z.string().trim().optional().nullable(),
       quantity: z.number().int('Quantity must be an integer').min(1, 'Quantity must be at least 1').default(1),
@@ -29,13 +36,6 @@ export const orderItemSchema = z.preprocess(
     })
   .superRefine((data, ctx) => {
     if (data.itemType === 'SERVICE') {
-      if (!data.staffId || data.staffId.trim() === '') {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Select Staff: Staff is required for service items',
-          path: ['staffId'],
-        });
-      }
       if (!data.serviceId && !data.itemName) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -70,11 +70,14 @@ export const paymentItemSchema = z.preprocess(
       if (typeof val === 'string') {
         const upper = val.toUpperCase().trim();
         if (upper === 'UPI') return 'GPAY';
+        if (upper === 'PHONE PAY') return 'PHONEPE';
+        if (upper === 'PAY AT SALON') return 'CASH';
+        if (upper.includes('PACKAGE') || upper.includes('REDEMPTION')) return 'OTHER';
         return upper;
       }
       return val;
-    }, z.enum(['CASH', 'CARD', 'HDFC', 'GPAY', 'PHONEPE', 'BALANCE', 'OTHER', 'UPI'])),
-    amount: z.number().min(0.01, 'Payment amount must be greater than 0'),
+    }, z.enum(['CASH', 'CARD', 'HDFC', 'GPAY', 'PHONEPE', 'BALANCE', 'OTHER', 'UPI', 'PAY AT SALON'])),
+    amount: z.number().min(0, 'Payment amount must be non-negative'),
     referenceNumber: z.string().trim().max(100).optional().nullable(),
   })
 );
@@ -82,13 +85,13 @@ export const paymentItemSchema = z.preprocess(
 export const quickGuestSchema = z.object({
   name: z.string().trim().min(1, 'Guest name is required').max(100),
   mobile: z.string().trim().min(7).max(20).regex(phoneRegex, 'Invalid mobile number format'),
-  email: z.string().trim().email('Invalid email address').optional().nullable(),
+  email: z.preprocess((val) => (typeof val === 'string' && val.includes('@') && val.trim() !== '-' ? val.trim() : null), z.string().email('Invalid email address').optional().nullable()),
   gender: z
     .preprocess((val) => (typeof val === 'string' ? val.toUpperCase() : val), z.enum(['MALE', 'FEMALE', 'OTHER', 'UNSPECIFIED']))
     .optional()
     .nullable(),
-  dob: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional().nullable(),
-  dateOfBirth: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional().nullable(),
+  dob: z.preprocess((val) => (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val) ? val.trim() : null), z.string().optional().nullable()),
+  dateOfBirth: z.preprocess((val) => (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val) ? val.trim() : null), z.string().optional().nullable()),
   anniversary: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional().nullable(),
   anniversaryDate: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional().nullable(),
   gstNumber: z.string().trim().max(30).optional().nullable(),
@@ -126,12 +129,17 @@ export const createPosOrderSchema = z
         if (typeof val === 'string') {
           const upper = val.toUpperCase().trim();
           if (upper === 'UPI') return 'GPAY';
+          if (upper === 'PHONE PAY') return 'PHONEPE';
+          if (upper.includes('PACKAGE') || upper.includes('REDEMPTION')) return 'OTHER';
           return upper;
         }
         return val;
-      }, z.enum(['CASH', 'CARD', 'HDFC', 'GPAY', 'PHONEPE', 'BALANCE', 'SPLIT', 'UPI']))
+      }, z.enum(['CASH', 'CARD', 'HDFC', 'GPAY', 'PHONEPE', 'BALANCE', 'SPLIT', 'UPI', 'PAY AT SALON', 'OTHER']))
       .optional()
       .default('CASH'),
+    paymentStatus: z
+      .preprocess((val) => (typeof val === 'string' ? val.toUpperCase().trim() : val), z.enum(['PAID', 'PARTIAL', 'UNPAID']))
+      .optional(),
     payments: z.array(paymentItemSchema).optional().nullable(),
     notes: z.string().trim().max(1000).optional().nullable(),
     instruction: z.string().trim().max(1000).optional().nullable(),
@@ -181,15 +189,33 @@ export const posOrderQuerySchema = z.object({
 });
 
 export const updatePosOrderStatusSchema = z.object({
-  status: z.preprocess((val) => (typeof val === 'string' ? val.toUpperCase() : val), posStatusEnum),
+  status: z.preprocess((val) => {
+    if (typeof val === 'string') {
+      const u = val.toUpperCase().trim();
+      if (u === 'IN PROGRESS' || u === 'IN_PROGRESS') return 'PENDING';
+      if (u === 'WAITING') return 'NEW';
+      return u;
+    }
+    return val;
+  }, posStatusEnum),
   notes: z.string().trim().max(1000).optional().nullable(),
 });
 
 export const updatePosOrderSchema = z.object({
   guestId: z.string().uuid('Invalid guest ID').optional().nullable(),
+  staffId: z.string().uuid('Invalid staff ID').optional().nullable(),
+  orderDate: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}/)).optional().nullable(),
   items: z.array(orderItemSchema).min(1, 'Order must contain at least one item').optional(),
   status: z
-    .preprocess((val) => (typeof val === 'string' ? val.toUpperCase() : val), posStatusEnum)
+    .preprocess((val) => {
+      if (typeof val === 'string') {
+        const u = val.toUpperCase().trim();
+        if (u === 'IN PROGRESS' || u === 'IN_PROGRESS') return 'PENDING';
+        if (u === 'WAITING') return 'NEW';
+        return u;
+      }
+      return val;
+    }, posStatusEnum)
     .optional(),
   discountType: z
     .preprocess((val) => (typeof val === 'string' ? val.toUpperCase() : val), z.enum(['PERCENTAGE', 'FIXED']))
@@ -203,6 +229,9 @@ export const updatePosOrderSchema = z.object({
   tipAmount: z.number().min(0).optional(),
   paymentMethod: z
     .preprocess((val) => (typeof val === 'string' ? val.toUpperCase() : val), z.enum(['CASH', 'CARD', 'HDFC', 'GPAY', 'PHONEPE', 'BALANCE', 'SPLIT']))
+    .optional(),
+  paymentStatus: z
+    .preprocess((val) => (typeof val === 'string' ? val.toUpperCase() : val), z.enum(['PAID', 'PARTIAL', 'UNPAID']))
     .optional(),
   payments: z.array(paymentItemSchema).optional().nullable(),
   notes: z.string().trim().max(1000).optional().nullable(),

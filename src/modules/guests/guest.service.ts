@@ -311,14 +311,8 @@ export class GuestService {
   async delete(tenantId: string, id: string, actor: AuthenticatedUser, ipAddress?: string) {
     const existing = await this.getById(tenantId, id);
 
-    // Soft delete by default or check if referrals exist
-    const referrals = await this.repo.getReferrals(tenantId, id);
-    if (referrals.length > 0) {
-      // Deactivate rather than delete if dependent records exist
-      await this.repo.update(tenantId, id, { isActive: false });
-    } else {
-      await this.repo.delete(tenantId, id);
-    }
+    // Completely delete the customer and cascade linked records from PostgreSQL database
+    await this.repo.delete(tenantId, id);
 
     await prisma.auditLog.create({
       data: {
@@ -338,19 +332,14 @@ export class GuestService {
       },
     });
 
-    return { success: true, message: 'Guests deleted successfully' };
+    return { success: true, message: 'Customer deleted successfully' };
   }
 
   async bulkDelete(tenantId: string, ids: string[], actor: AuthenticatedUser, ipAddress?: string) {
     let deletedCount = 0;
     for (const id of ids) {
       try {
-        const referrals = await this.repo.getReferrals(tenantId, id);
-        if (referrals.length > 0) {
-          await this.repo.update(tenantId, id, { isActive: false });
-        } else {
-          await this.repo.delete(tenantId, id);
-        }
+        await this.repo.delete(tenantId, id);
         deletedCount++;
       } catch {
         // Continue with other IDs

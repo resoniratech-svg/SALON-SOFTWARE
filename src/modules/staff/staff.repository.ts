@@ -24,6 +24,16 @@ export class StaffRepository {
     });
   }
 
+  async findStaffByName(tenantId: string, name: string) {
+    const trimmed = name.trim();
+    return prisma.staff.findFirst({
+      where: {
+        tenantId,
+        name: { equals: trimmed, mode: 'insensitive' },
+      },
+    });
+  }
+
   async findStaffById(tenantId: string, id: string) {
     return prisma.staff.findFirst({
       where: { id, tenantId },
@@ -110,6 +120,7 @@ export class StaffRepository {
         take: limit,
         include: {
           personalDetails: true,
+          documents: true,
           joiningDetails: {
             include: {
               designation: true,
@@ -122,6 +133,7 @@ export class StaffRepository {
           },
           appointmentSettings: true,
           bankDetails: true,
+          weeklySchedules: true,
         },
         orderBy: {
           createdAt: 'desc',
@@ -146,6 +158,14 @@ export class StaffRepository {
       });
 
       // 2. Personal Details
+      let safeDob: Date | null = null;
+      if (input.personalDetails.dob) {
+        const parsedDob = new Date(input.personalDetails.dob);
+        if (!isNaN(parsedDob.getTime())) {
+          safeDob = parsedDob;
+        }
+      }
+
       await tx.staffPersonalDetail.create({
         data: {
           staffId: staff.id,
@@ -153,7 +173,7 @@ export class StaffRepository {
           lastName: input.personalDetails.lastName,
           displayName: input.personalDetails.displayName || fullName,
           gender: input.personalDetails.gender || null,
-          dob: input.personalDetails.dob ? new Date(input.personalDetails.dob) : null,
+          dob: safeDob,
           mobile: input.personalDetails.mobile,
           email: input.personalDetails.email || null,
           address: input.personalDetails.address || null,
@@ -176,14 +196,22 @@ export class StaffRepository {
       }
 
       // 4. Joining Details
+      let safeJoiningDate = new Date();
+      if (input.joiningDetails.joiningDate) {
+        const parsedDate = new Date(input.joiningDetails.joiningDate);
+        if (!isNaN(parsedDate.getTime())) {
+          safeJoiningDate = parsedDate;
+        }
+      }
+
       await tx.staffJoiningDetail.create({
         data: {
           staffId: staff.id,
-          joiningDate: new Date(input.joiningDetails.joiningDate),
+          joiningDate: safeJoiningDate,
           designationId: input.joiningDetails.designationId,
           employeeNumber: input.joiningDetails.employeeNumber,
           reportingToId: input.joiningDetails.reportingToId || null,
-          workingHours: input.joiningDetails.workingHours,
+          workingHours: input.joiningDetails.workingHours || '9',
         },
       });
 
@@ -192,10 +220,10 @@ export class StaffRepository {
         await tx.staffBankDetail.create({
           data: {
             staffId: staff.id,
-            bankName: input.bankDetails.bankName,
-            branch: input.bankDetails.branch,
-            accountNumber: input.bankDetails.accountNumber,
-            ifsc: input.bankDetails.ifsc,
+            bankName: input.bankDetails.bankName || 'General Bank',
+            branch: input.bankDetails.branch || 'Main Branch',
+            accountNumber: input.bankDetails.accountNumber || '0000000000',
+            ifsc: input.bankDetails.ifsc || 'BANK0001',
           },
         });
       }
@@ -329,6 +357,36 @@ export class StaffRepository {
     return prisma.staff.update({
       where: { id },
       data: { isActive },
+    });
+  }
+
+  async deleteStaff(id: string) {
+    // 1. Clean up service mapping and reporting relationships that might restrict deletion
+    await prisma.serviceStaff.deleteMany({ where: { staffId: id } });
+    await prisma.staffJoiningDetail.updateMany({
+      where: { reportingToId: id },
+      data: { reportingToId: null },
+    });
+
+    // 2. Delete staff row (cascades to personal details, documents, bank, schedules, salary, etc.)
+    return prisma.staff.delete({
+      where: { id },
+    });
+  }
+
+  async findOrCreateDesignation(tenantId: string, name: string) {
+    const trimmed = name.trim();
+    const existing = await prisma.designation.findFirst({
+      where: { tenantId, name: { equals: trimmed, mode: 'insensitive' } },
+    });
+    if (existing) return existing;
+
+    return prisma.designation.create({
+      data: {
+        tenantId,
+        name: trimmed,
+        description: `${trimmed} designation`,
+      },
     });
   }
 

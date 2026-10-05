@@ -254,6 +254,13 @@ export class DisposableService {
 
   async delete(tenantId: string, id: string) {
     await this.getById(tenantId, id);
+    const stockUsage = await prisma.stockTransaction.count({ where: { tenantId, disposableId: id } });
+    if (stockUsage > 0) {
+      // Module Isolation: preserve stock transaction history, reports, and audit logs.
+      await this.repo.update(id, { isActive: false, hideFromCatalogue: true });
+      return { success: true, message: 'Disposable removed from catalog (stock history preserved)', softDeleted: true };
+    }
+    await prisma.vendorItem.deleteMany({ where: { tenantId, disposableId: id } });
     await this.repo.delete(id);
     return { success: true, message: 'Disposable deleted successfully' };
   }

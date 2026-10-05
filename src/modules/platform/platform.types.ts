@@ -7,6 +7,9 @@ export interface CreateCompanyInput {
   contactEmail?: string | null;
   contactPhone?: string | null;
   address?: string | null;
+  city?: string | null;
+  primaryBranchName?: string | null;
+  logoUrl?: string | null;
   cashierLimit?: number;
   enabledModules?: string[];
   admin?: {
@@ -26,10 +29,16 @@ export interface CreateCompanyInput {
 export interface UpdateCompanyInput {
   name?: string;
   code?: string;
-  contactEmail?: string;
-  contactPhone?: string;
-  address?: string;
+  ownerName?: string;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+  address?: string | null;
+  city?: string | null;
+  primaryBranchName?: string | null;
+  logoUrl?: string | null;
   cashierLimit?: number;
+  enabledModules?: string[];
+  adminPassword?: string;
 }
 
 export interface RenewSubscriptionInput {

@@ -23,9 +23,13 @@ model Tenant {
   expiryAlertDays       Int       @default(7) @map("expiry_alert_days")
   cashierLimit          Int       @default(2) @map("cashier_limit")
   enabledModules        Json?     @default("[\"SERVICES\",\"PRODUCTS\",\"DISPOSABLES\",\"STAFF\"]") @map("enabled_modules")
+  cashierPermissions    Json?     @default("{}") @map("cashier_permissions")
   contactEmail          String?   @map("contact_email")
   contactPhone          String?   @map("contact_phone")
   address               String?
+  city                  String?
+  primaryBranchName     String?   @map("primary_branch_name")
+  logoUrl               String?   @map("logo_url") @db.Text
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
 
@@ -1934,6 +1938,25 @@ model WhatsAppMessage {
   @@index([tenantId, status])
   @@index([tenantId, createdAt])
   @@map("whatsapp_messages")
+}
+
+// ==========================================
+// SAAS PLATFORM SUBSCRIPTION PLANS
+// ==========================================
+model SubscriptionPlan {
+  id           String   @id @default(uuid())
+  name         String   @unique
+  price        Decimal  @db.Decimal(10, 2)
+  durationDays Int      @map("duration_days")
+  billingCycle String?  @map("billing_cycle")
+  badgeTag     String?  @map("badge_tag")
+  cashierLimit Int      @default(2) @map("cashier_limit")
+  features     Json?    @default("[]")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("subscription_plans")
 }
 
 

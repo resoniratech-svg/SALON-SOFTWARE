@@ -8,6 +8,7 @@ import serviceRoutes from './modules/services/service.routes.js';
 import productCategoryRoutes from './modules/product-categories/product-category.routes.js';
 import productRoutes from './modules/products/product.routes.js';
 import disposableRoutes from './modules/disposables/disposable.routes.js';
+import packageRoutes from './modules/packages/package.routes.js';
 import platformRoutes from './modules/platform/platform.routes.js';
 import cashierRoutes from './modules/cashiers/cashier.routes.js';
 import resourceRoutes from './modules/resources/resource.routes.js';
@@ -31,8 +32,8 @@ export const createApp = (): Express => {
   // Standard Security & Body Parsing Middlewares
   app.use(helmet());
   app.use(cors());
-  app.use(express.json({ limit: '1mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+  app.use(express.json({ limit: '15mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
   // Health check endpoint
   app.get('/health', (_req: Request, res: Response) => {
@@ -59,6 +60,9 @@ export const createApp = (): Express => {
 
   // Module 07: Disposables
   app.use('/api/disposables', disposableRoutes);
+
+  // Packages Module
+  app.use('/api/packages', packageRoutes);
 
   // Platform / SuperAdmin Management
   app.use('/api/platform', platformRoutes);

@@ -65,6 +65,10 @@ export class PlatformRepository {
         take: limit,
         orderBy: { [sortBy]: sortOrder },
         include: {
+          users: {
+            select: { id: true, username: true, email: true, phone: true, role: { select: { name: true } } },
+            orderBy: { createdAt: 'asc' },
+          },
           _count: {
             select: {
               users: true,
@@ -230,6 +234,13 @@ export class PlatformRepository {
         passwordHash,
         mustChangePassword,
       },
+    });
+  }
+
+  async updateAdminUser(userId: string, data: { username?: string; email?: string | null; phone?: string | null }) {
+    return prisma.user.update({
+      where: { id: userId },
+      data,
     });
   }
 
@@ -564,6 +575,62 @@ export class PlatformRepository {
       alerts,
       status: 'HEALTHY',
     };
+  }
+
+  // Subscription Plans
+  async createPlan(data: {
+    name: string;
+    price: number;
+    durationDays: number;
+    billingCycle?: string;
+    badgeTag?: string | null;
+    cashierLimit?: number;
+    features?: string[];
+    isActive?: boolean;
+  }) {
+    return prisma.subscriptionPlan.create({
+      data: {
+        name: data.name,
+        price: data.price,
+        durationDays: data.durationDays,
+        billingCycle: data.billingCycle || `${data.durationDays} Days`,
+        badgeTag: data.badgeTag || null,
+        cashierLimit: data.cashierLimit !== undefined ? data.cashierLimit : 2,
+        features: data.features || [],
+        isActive: data.isActive !== undefined ? data.isActive : true,
+      },
+    });
+  }
+
+  async findPlans() {
+    return prisma.subscriptionPlan.findMany({
+      orderBy: { price: 'asc' },
+    });
+  }
+
+  async findPlanById(id: string) {
+    return prisma.subscriptionPlan.findUnique({
+      where: { id },
+    });
+  }
+
+  async findPlanByName(name: string) {
+    return prisma.subscriptionPlan.findUnique({
+      where: { name },
+    });
+  }
+
+  async updatePlan(id: string, data: any) {
+    return prisma.subscriptionPlan.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async deletePlan(id: string) {
+    return prisma.subscriptionPlan.delete({
+      where: { id },
+    });
   }
 }
 

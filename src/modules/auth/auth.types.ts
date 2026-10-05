@@ -47,6 +47,7 @@ export interface AuthenticatedUser {
     address: string | null;
     contactEmail: string | null;
     contactPhone: string | null;
+    logoUrl?: string | null;
   } | null;
 }
 

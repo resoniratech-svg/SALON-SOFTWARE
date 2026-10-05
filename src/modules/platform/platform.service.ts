@@ -38,6 +38,9 @@ export class PlatformService {
       contactEmail: input.contactEmail,
       contactPhone: input.contactPhone,
       address: input.address,
+      city: input.city,
+      primaryBranchName: input.primaryBranchName,
+      logoUrl: input.logoUrl,
       cashierLimit: input.cashierLimit !== undefined ? input.cashierLimit : 2,
       enabledModules: input.enabledModules || ['SERVICES', 'PRODUCTS', 'DISPOSABLES', 'STAFF'],
     });
@@ -127,8 +130,31 @@ export class PlatformService {
       ...(input.contactEmail !== undefined ? { contactEmail: input.contactEmail } : {}),
       ...(input.contactPhone !== undefined ? { contactPhone: input.contactPhone } : {}),
       ...(input.address !== undefined ? { address: input.address } : {}),
+      ...(input.city !== undefined ? { city: input.city } : {}),
+      ...(input.primaryBranchName !== undefined ? { primaryBranchName: input.primaryBranchName } : {}),
+      ...(input.logoUrl !== undefined ? { logoUrl: input.logoUrl } : {}),
       ...(input.cashierLimit !== undefined ? { cashierLimit: input.cashierLimit } : {}),
+      ...(input.enabledModules !== undefined ? { enabledModules: input.enabledModules } : {}),
     });
+
+    if (input.ownerName && input.ownerName.trim()) {
+      const adminUsers = await this.repo.findAdmins(id);
+      if (adminUsers.length > 0) {
+        await this.repo.updateAdminUser(adminUsers[0].id, {
+          username: input.ownerName.trim(),
+          ...(input.contactEmail !== undefined ? { email: input.contactEmail } : {}),
+          ...(input.contactPhone !== undefined ? { phone: input.contactPhone } : {}),
+        });
+      }
+    }
+
+    if (input.adminPassword && input.adminPassword.trim().length >= 6) {
+      const adminUsers = await this.repo.findAdmins(id);
+      if (adminUsers.length > 0) {
+        const passwordHash = await bcrypt.hash(input.adminPassword.trim(), 10);
+        await this.repo.updateAdminPassword(adminUsers[0].id, passwordHash, false);
+      }
+    }
 
     await this.repo.createAuditLog({
       actorId: actor.id,
@@ -631,6 +657,7 @@ export class PlatformService {
         code: company.code,
         plan: company.plan,
         enabledModules: company.enabledModules,
+        logoUrl: company.logoUrl,
       },
       actor: {
         id: actor.id,
@@ -662,49 +689,85 @@ export class PlatformService {
     };
   }
 
+  async listSubscriptionPlans() {
+    return this.repo.findPlans();
+  }
+
   getSubscriptionPlans() {
-    return [
-      {
-        plan: 'TRIAL',
-        name: 'Free Trial',
-        durationDays: 14,
-        defaultCashierLimit: 1,
-        defaultModules: ['SERVICES', 'PRODUCTS', 'STAFF', 'RESOURCES'],
-        price: 0,
-        currency: 'USD',
-        description: '14-day evaluation trial for salons exploring QUBEXE SALOON SOFTWARE',
-      },
-      {
-        plan: 'STARTER',
-        name: 'Starter Plan',
-        durationDays: 30,
-        defaultCashierLimit: 2,
-        defaultModules: ['SERVICES', 'PRODUCTS', 'STAFF', 'POS', 'RESOURCES'],
-        price: 49,
-        currency: 'USD',
-        description: 'Essential operations for boutique salons and independent stylists',
-      },
-      {
-        plan: 'PRO',
-        name: 'Professional Plan',
-        durationDays: 30,
-        defaultCashierLimit: 5,
-        defaultModules: ['SERVICES', 'PRODUCTS', 'DISPOSABLES', 'STAFF', 'POS', 'APPOINTMENTS', 'RESOURCES'],
-        price: 99,
-        currency: 'USD',
-        description: 'Comprehensive operations for growing salons and spas with disposables inventory',
-      },
-      {
-        plan: 'ENTERPRISE',
-        name: 'Enterprise Plan',
-        durationDays: 365,
-        defaultCashierLimit: 20,
-        defaultModules: ['SERVICES', 'PRODUCTS', 'DISPOSABLES', 'STAFF', 'POS', 'APPOINTMENTS', 'ANALYTICS', 'RESOURCES'],
-        price: 299,
-        currency: 'USD',
-        description: 'High-volume salons with multi-station cashiers and priority platform support',
-      },
-    ];
+    return this.listSubscriptionPlans();
+  }
+
+  async createSubscriptionPlan(input: any, actor: AuthenticatedUser, ipAddress?: string) {
+    const existing = await this.repo.findPlanByName(input.name);
+    if (existing) {
+      throw new AppError(`Subscription plan with name '${input.name}' already exists`, 409);
+    }
+
+    const created = await this.repo.createPlan(input);
+
+    await this.repo.createAuditLog({
+      actorId: actor.id,
+      actorType: 'SUPERADMIN',
+      actorName: actor.username,
+      action: 'SUBSCRIPTION_PLAN_CREATED',
+      entityType: 'PLAN',
+      entityId: created.id,
+      metadata: { name: created.name, price: created.price, durationDays: created.durationDays },
+      ipAddress,
+    });
+
+    return created;
+  }
+
+  async updateSubscriptionPlan(id: string, input: any, actor: AuthenticatedUser, ipAddress?: string) {
+    const plan = await this.repo.findPlanById(id);
+    if (!plan) {
+      throw new NotFoundError(`Subscription plan not found with ID '${id}'`);
+    }
+
+    if (input.name && input.name !== plan.name) {
+      const existing = await this.repo.findPlanByName(input.name);
+      if (existing) {
+        throw new AppError(`Subscription plan with name '${input.name}' already exists`, 409);
+      }
+    }
+
+    const updated = await this.repo.updatePlan(id, input);
+
+    await this.repo.createAuditLog({
+      actorId: actor.id,
+      actorType: 'SUPERADMIN',
+      actorName: actor.username,
+      action: 'SUBSCRIPTION_PLAN_UPDATED',
+      entityType: 'PLAN',
+      entityId: id,
+      metadata: input,
+      ipAddress,
+    });
+
+    return updated;
+  }
+
+  async deleteSubscriptionPlan(id: string, actor: AuthenticatedUser, ipAddress?: string) {
+    const plan = await this.repo.findPlanById(id);
+    if (!plan) {
+      throw new NotFoundError(`Subscription plan not found with ID '${id}'`);
+    }
+
+    await this.repo.deletePlan(id);
+
+    await this.repo.createAuditLog({
+      actorId: actor.id,
+      actorType: 'SUPERADMIN',
+      actorName: actor.username,
+      action: 'SUBSCRIPTION_PLAN_DELETED',
+      entityType: 'PLAN',
+      entityId: id,
+      metadata: { name: plan.name },
+      ipAddress,
+    });
+
+    return { message: `Subscription plan '${plan.name}' deleted successfully` };
   }
 
   getAvailableModules() {

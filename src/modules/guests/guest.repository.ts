@@ -17,6 +17,10 @@ export class GuestRepository {
     referredByGuest: {
       select: { id: true, name: true, mobile: true, guestCode: true },
     },
+    guestPackages: {
+      include: { package: true },
+      orderBy: { purchaseDate: 'desc' as const },
+    },
   };
 
   async create(tenantId: string, data: Prisma.GuestUncheckedCreateInput) {
@@ -115,6 +119,8 @@ export class GuestRepository {
 
     if (filters.isActive !== undefined) {
       where.isActive = filters.isActive;
+    } else {
+      where.isActive = true;
     }
 
     if (filters.isBlocked !== undefined) {
@@ -188,8 +194,41 @@ export class GuestRepository {
   }
 
   async delete(tenantId: string, id: string) {
-    return prisma.guest.delete({
-      where: { id },
+    return prisma.$transaction(async (tx) => {
+      // 1. Break self-referential referral loops
+      await tx.guest.updateMany({
+        where: { tenantId, referredByGuestId: id },
+        data: { referredByGuestId: null },
+      });
+
+      // 2. Check if guest has historical POS orders
+      const orderCount = await tx.posOrder.count({
+        where: { tenantId, guestId: id },
+      });
+
+      // Module Isolation: If customer has historical POS orders, preserve them!
+      // DO NOT delete pos_orders or transactions, so Reports, Trends, and Cash Management are never affected.
+      if (orderCount > 0) {
+        // Soft-delete the guest by setting isActive: false so they disappear from CRM,
+        // while preserving all financial transactions in Reports, Trends, and Cash Management.
+        return tx.guest.update({
+          where: { id },
+          data: { isActive: false },
+        });
+      }
+
+      // If customer has NO POS orders, safe to hard delete child records and guest:
+      await tx.appointment.deleteMany({
+        where: { tenantId, guestId: id },
+      });
+
+      await tx.enquiry.deleteMany({
+        where: { tenantId, guestId: id },
+      });
+
+      return tx.guest.delete({
+        where: { id },
+      });
     });
   }
 

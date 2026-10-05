@@ -15,6 +15,8 @@ import {
   updateAdminStatusSchema,
   resetAdminPasswordSchema,
   createSuperAdminSchema,
+  createPlanSchema,
+  updatePlanSchema,
   companyQuerySchema,
   auditLogQuerySchema,
 } from './platform.validation.js';
@@ -33,6 +35,9 @@ router.use(requireSuperAdmin);
 // Platform overview & metrics
 router.get('/metrics/overview', platformController.getMetricsOverview);
 router.get('/plans', platformController.getPlans);
+router.post('/plans', validateRequest(createPlanSchema), platformController.createPlan);
+router.put('/plans/:id', validateRequest(updatePlanSchema), platformController.updatePlan);
+router.delete('/plans/:id', platformController.deletePlan);
 router.get('/modules', platformController.getModules);
 
 // Company management (/companies and /tenants aliases)

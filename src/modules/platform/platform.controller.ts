@@ -269,8 +269,37 @@ export class PlatformController {
 
   getPlans = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const result = this.service.getSubscriptionPlans();
+      const result = await this.service.listSubscriptionPlans();
       sendResponse(res, 200, true, 'Subscription plans retrieved successfully', result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  createPlan = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const result = await this.service.createSubscriptionPlan(req.body, req.user!, req.ip);
+      sendResponse(res, 201, true, 'Subscription plan created successfully', result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updatePlan = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = String(req.params.id);
+      const result = await this.service.updateSubscriptionPlan(id, req.body, req.user!, req.ip);
+      sendResponse(res, 200, true, 'Subscription plan updated successfully', result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deletePlan = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = String(req.params.id);
+      const result = await this.service.deleteSubscriptionPlan(id, req.user!, req.ip);
+      sendResponse(res, 200, true, result.message, result);
     } catch (error) {
       next(error);
     }
