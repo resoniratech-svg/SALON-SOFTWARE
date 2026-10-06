@@ -17,7 +17,7 @@ import {
 import { AuthenticatedUser, JwtPayload } from '../auth/auth.types.js';
 import { UserStatus } from '@prisma/client';
 import { config } from '../../config/environment.js';
-import { AppError, NotFoundError, BadRequestError } from '../../utils/app-error.js';
+import { AppError, NotFoundError, BadRequestError, UnauthorizedError } from '../../utils/app-error.js';
 
 export class PlatformService {
   constructor(private repo: PlatformRepository = platformRepository) {}
@@ -191,6 +191,47 @@ export class PlatformService {
     }
 
     return updated;
+  }
+
+  async deleteCompany(id: string, superAdminPassword: string, actor: AuthenticatedUser, ipAddress?: string) {
+    if (!superAdminPassword || typeof superAdminPassword !== 'string' || !superAdminPassword.trim()) {
+      throw new BadRequestError('Super Admin password is required to delete a company');
+    }
+
+    const company = await this.repo.findCompanyById(id);
+    if (!company) {
+      throw new NotFoundError(`Company with ID '${id}' not found`);
+    }
+
+    // Verify actor is SuperAdmin and check password
+    const superAdminUser = await this.repo.findUserById(actor.id);
+    if (!superAdminUser) {
+      throw new UnauthorizedError('Super Admin user record not found');
+    }
+
+    const isPasswordValid = await bcrypt.compare(superAdminPassword.trim(), superAdminUser.passwordHash);
+    if (!isPasswordValid) {
+      throw new UnauthorizedError('Incorrect Super Admin password. Deletion cancelled.');
+    }
+
+    await this.repo.deleteCompany(id);
+
+    await this.repo.createAuditLog({
+      actorId: actor.id,
+      actorType: 'SUPERADMIN',
+      actorName: actor.username,
+      tenantId: null,
+      action: 'COMPANY_DELETED_PERMANENTLY',
+      entityType: 'TENANT',
+      entityId: id,
+      metadata: { companyName: company.name, companyCode: company.code },
+      ipAddress,
+    }).catch(() => {});
+
+    return {
+      success: true,
+      message: `Company '${company.name}' and all associated records permanently deleted.`,
+    };
   }
 
   async updateSubscription(id: string, input: UpdateSubscriptionInput, actor: AuthenticatedUser, ipAddress?: string) {

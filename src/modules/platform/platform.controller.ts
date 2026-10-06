@@ -56,6 +56,18 @@ export class PlatformController {
     }
   };
 
+  deleteCompany = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const id = String(req.params.id);
+      const { password, superAdminPassword } = req.body || {};
+      const pwd = superAdminPassword || password;
+      const result = await this.service.deleteCompany(id, pwd, req.user!, req.ip);
+      sendResponse(res, 200, true, 'Company and all associated data permanently deleted successfully', result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   updateSubscription = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const id = String(req.params.id);

@@ -632,6 +632,49 @@ export class PlatformRepository {
       where: { id },
     });
   }
+
+  async deleteCompany(id: string) {
+    return prisma.$transaction(async (tx) => {
+      await tx.posOrderItem.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.posPayment.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.posOrder.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.appointmentItem.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.appointment.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.guestWalletTransaction.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.guestMembership.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.guestPackage.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.guestFollowUp.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.guestNote.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.guestFamilyMember.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.guestFeedback.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.guestFormSubmission.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.guest.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.stockTransaction.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.purchaseOrderItem.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.purchaseOrder.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.vendorItem.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.vendor.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.transferRequestItem.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.transferRequest.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.product.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.productCategory.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.service.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.serviceCategory.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.disposable.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.cashTransaction.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.financialAccount.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.expenseTransaction.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.staffSalary.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.staff.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.shift.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.designation.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.user.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      await tx.auditLog.deleteMany({ where: { tenantId: id } }).catch(() => {});
+      return tx.tenant.delete({
+        where: { id },
+      });
+    });
+  }
 }
 
 export const platformRepository = new PlatformRepository();

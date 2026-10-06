@@ -52,6 +52,7 @@ router.patch('/companies/:id/cashier-limit', platformController.updateCashierLim
 router.patch('/companies/:id/modules', validateRequest(updateModulesSchema), platformController.updateModules);
 router.get('/companies/:id/cashiers', platformController.listCompanyCashiers);
 router.get('/companies/:id/subscription-history', platformController.getSubscriptionHistory);
+router.delete('/companies/:id', platformController.deleteCompany);
 
 router.post('/tenants', validateRequest(createCompanySchema), platformController.createCompany);
 router.get('/tenants', validateQuery(companyQuerySchema), platformController.listCompanies);
@@ -64,6 +65,7 @@ router.patch('/tenants/:id/cashier-limit', platformController.updateCashierLimit
 router.patch('/tenants/:id/modules', validateRequest(updateModulesSchema), platformController.updateModules);
 router.get('/tenants/:id/cashiers', platformController.listCompanyCashiers);
 router.get('/tenants/:id/subscription-history', platformController.getSubscriptionHistory);
+router.delete('/tenants/:id', platformController.deleteCompany);
 
 // Global admin management
 router.get('/admins', platformController.listAdmins);
